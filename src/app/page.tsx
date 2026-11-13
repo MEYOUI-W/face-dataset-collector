@@ -18,7 +18,15 @@ interface PoseConfig {
   skippable: boolean;
 }
 
-// รายการท่าทาง 9 ท่าทาง
+// ชุดสีสำหรับท่าแสงสะท้อนบนใบหน้า (White, Warm Amber, Cool Blue, Vivid Green)
+const LIGHT_COLORS = [
+  { id: '06_light_white', title: '6.1 แสงสะท้อน – สีขาว', color: '#FFFFFF', label: 'แสงขาว ⚪ (1/4)' },
+  { id: '06_light_warm', title: '6.2 แสงสะท้อน – สีส้ม', color: '#FF7A00', label: 'แสงส้ม 🟠 (2/4)' },
+  { id: '06_light_blue', title: '6.3 แสงสะท้อน – สีฟ้า', color: '#0066FF', label: 'แสงฟ้า 🔵 (3/4)' },
+  { id: '06_light_green', title: '6.4 แสงสะท้อน – สีเขียว', color: '#00C853', label: 'แสงเขียว 🟢 (4/4)' },
+];
+
+// รายการท่าทาง 9 ท่าทางหลัก
 const POSES: PoseConfig[] = [
   {
     id: '01_frontal_neutral',
@@ -62,10 +70,10 @@ const POSES: PoseConfig[] = [
   },
   {
     id: '06_screen_light',
-    title: 'แสงสะท้อนบนใบหน้า',
-    instruction: 'มองตรงที่กล้อง เพื่อรับแสงสะท้อนจากหน้าจอ',
+    title: 'แสงสะท้อนบนใบหน้า (4 สี)',
+    instruction: 'มองตรงที่กล้อง หน้านิ่ง จอจะกะพริบเปลี่ยน 4 สี (ขาว, ส้ม, ฟ้า, เขียว) และจับภาพอัตโนมัติ',
     badge: '6/9',
-    bgColor: '#FFF7ED',
+    bgColor: '#FFFFFF',
     skippable: false,
   },
   {
@@ -120,10 +128,11 @@ export default function FaceCaptureStudio() {
   const [flash, setFlash] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ folderName: string; totalSaved: number; folderUrl?: string } | null>(null);
 
-  // การตั้งค่า Auto-Capture
+  // การตั้งค่า Auto-Capture และ แสงหลายสี
   const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(true);
   const [isJustCaptured, setIsJustCaptured] = useState(false);
   const [singleRetakeIndex, setSingleRetakeIndex] = useState<number | null>(null);
+  const [currentLightColor, setCurrentLightColor] = useState<string | null>(null);
 
   // สถานะ AI จาก face-api.js
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -139,6 +148,7 @@ export default function FaceCaptureStudio() {
   // Refs ตรวจจับความนิ่งต่อเนื่องเพื่อความแม่นยำ
   const steadyMatchFramesRef = useRef(0);
   const isCoolingDownRef = useRef(false);
+  const isColorSequenceRunningRef = useRef(false);
 
   const currentPose = POSES[currentPoseIndex];
 
@@ -267,7 +277,7 @@ export default function FaceCaptureStudio() {
     return canvas.toDataURL('image/jpeg', 0.92);
   }, [facingMode, playShutterSound]);
 
-  // เมื่อบันทึกภาพสำเร็จ
+  // เมื่อบันทึกภาพทั่วไป
   const saveAndAdvance = useCallback((dataUrl: string) => {
     const newEntry: CapturedImage = {
       poseName: currentPose.id,
@@ -318,11 +328,70 @@ export default function FaceCaptureStudio() {
     }, 700);
   }, [currentPose.id, currentPose.title, currentPoseIndex, singleRetakeIndex]);
 
+  // ลูปถ่ายภาพแสงสะท้อนหลายสีแบบรวดเร็ว (Multi-color Flash Sequence)
+  const triggerColorSequence = useCallback(async () => {
+    if (isColorSequenceRunningRef.current) return;
+    isColorSequenceRunningRef.current = true;
+    isCoolingDownRef.current = true;
+
+    for (let i = 0; i < LIGHT_COLORS.length; i++) {
+      const item = LIGHT_COLORS[i];
+      setCurrentLightColor(item.color);
+      setAiFeedbackText(`💡 นิ่งไว้: ถ่าย ${item.label}`);
+
+      // หน่วงเวลา 320ms ให้แสงสีสะท้อนบนใบหน้าเต็มที่
+      await new Promise((r) => setTimeout(r, 320));
+
+      const dataUrl = captureFrame();
+      if (dataUrl) {
+        const newEntry: CapturedImage = {
+          poseName: item.id,
+          title: item.title,
+          base64Data: dataUrl,
+        };
+        setCapturedImages((prev) => {
+          const filtered = prev.filter((p) => p.poseName !== item.id);
+          return [...filtered, newEntry];
+        });
+      }
+      await new Promise((r) => setTimeout(r, 120));
+    }
+
+    setCurrentLightColor(null);
+    setIsJustCaptured(true);
+    setAiFeedbackText('✅ บันทึกแสงสะท้อนครบ 4 สีเรียบร้อย!');
+
+    setTimeout(() => {
+      setIsJustCaptured(false);
+      isColorSequenceRunningRef.current = false;
+      if (singleRetakeIndex !== null) {
+        setSingleRetakeIndex(null);
+        setStage('review');
+        isCoolingDownRef.current = false;
+      } else {
+        if (currentPoseIndex + 1 < POSES.length) {
+          setCurrentPoseIndex((prev) => prev + 1);
+          setAiFeedbackText(`👉 เตรียมตัว: ${POSES[currentPoseIndex + 1].title}`);
+          setTimeout(() => {
+            isCoolingDownRef.current = false;
+          }, 1000);
+        } else {
+          isCoolingDownRef.current = false;
+          setStage('review');
+        }
+      }
+    }, 750);
+  }, [captureFrame, currentPoseIndex, singleRetakeIndex]);
+
   // ชัตเตอร์กดเอง
   const handleManualCapture = () => {
-    const dataUrl = captureFrame();
-    if (dataUrl) {
-      saveAndAdvance(dataUrl);
+    if (currentPose.id === '06_screen_light') {
+      triggerColorSequence();
+    } else {
+      const dataUrl = captureFrame();
+      if (dataUrl) {
+        saveAndAdvance(dataUrl);
+      }
     }
   };
 
@@ -375,7 +444,7 @@ export default function FaceCaptureStudio() {
 
       case '03_yaw_right':
         if (yawRatio > 0.54) return { matched: false, feedback: '👉 กรุณาหันไปทางขวาครับ' };
-        if (yawRatio > 0.43) return { matched: false, feedback: '👉 หันขวาอีกนิดครับ' };
+        if (yawRatio < 0.43) return { matched: false, feedback: '👉 หันขวาอีกนิดครับ' };
         return { matched: true, feedback: '✅ หันขวาถูกต้อง' };
 
       case '04_pitch_down':
@@ -388,7 +457,7 @@ export default function FaceCaptureStudio() {
 
       case '06_screen_light':
         if (yawRatio < 0.42 || yawRatio > 0.58) return { matched: false, feedback: '💡 มองตรงเพื่อรับแสงหน้าจอครับ' };
-        return { matched: true, feedback: '✅ แสงสะท้อนพร้อม' };
+        return { matched: true, feedback: '✅ หน้าตรงพร้อมถ่ายแสง 4 สี' };
 
       case '07_slight_smile':
         if (happyScore < 0.22) return { matched: false, feedback: '😊 ยิ้มเล็กน้อยให้มุมปากยกขึ้นครับ' };
@@ -417,6 +486,7 @@ export default function FaceCaptureStudio() {
       videoRef.current.paused ||
       videoRef.current.ended ||
       isCoolingDownRef.current ||
+      isColorSequenceRunningRef.current ||
       isJustCaptured
     ) {
       return;
@@ -456,12 +526,16 @@ export default function FaceCaptureStudio() {
         setPoseMatched(true);
         steadyMatchFramesRef.current += 1;
 
-        // เมื่อท่าทางถูกต้องนิ่ง ~150ms ให้จับภาพทันที
+        // เมื่อท่าทางถูกต้องนิ่ง ~150ms ให้เริ่มทำงาน
         if (autoCaptureEnabled && steadyMatchFramesRef.current >= 2) {
           steadyMatchFramesRef.current = 0;
-          const dataUrl = captureFrame();
-          if (dataUrl) {
-            saveAndAdvance(dataUrl);
+          if (currentPose.id === '06_screen_light') {
+            triggerColorSequence();
+          } else {
+            const dataUrl = captureFrame();
+            if (dataUrl) {
+              saveAndAdvance(dataUrl);
+            }
           }
         }
       } else {
@@ -471,7 +545,7 @@ export default function FaceCaptureStudio() {
     } catch {
       // ignore
     }
-  }, [modelsLoaded, isJustCaptured, currentPose.id, autoCaptureEnabled, validatePoseCriteria, captureFrame, saveAndAdvance]);
+  }, [modelsLoaded, isJustCaptured, currentPose.id, autoCaptureEnabled, validatePoseCriteria, captureFrame, saveAndAdvance, triggerColorSequence]);
 
   useEffect(() => {
     if (stage === 'camera' && modelsLoaded) {
@@ -577,8 +651,10 @@ export default function FaceCaptureStudio() {
 
   return (
     <div
-      className="fixed inset-0 w-screen h-[100dvh] flex flex-col justify-between items-center transition-colors duration-500 overflow-hidden select-none"
-      style={{ backgroundColor: stage === 'camera' ? currentPose.bgColor : '#FFFFFF' }}
+      className="fixed inset-0 w-screen h-[100dvh] flex flex-col justify-between items-center transition-colors duration-300 overflow-hidden select-none"
+      style={{
+        backgroundColor: currentLightColor || (stage === 'camera' ? currentPose.bgColor : '#FFFFFF'),
+      }}
     >
       {/* 1. INTRO STAGE */}
       {stage === 'intro' && (
@@ -588,7 +664,7 @@ export default function FaceCaptureStudio() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">ลงทะเบียนภาพใบหน้า</h1>
-            <p className="text-xs text-slate-500 mt-1">ระบบตรวจจับและบันทึกอัตโนมัติ 9 ท่าทาง</p>
+            <p className="text-xs text-slate-500 mt-1">ระบบตรวจจับและบันทึกอัตโนมัติ 9 ท่าทาง (พร้อมแสง 4 สี)</p>
           </div>
 
           <div className="w-full space-y-3 text-left">
@@ -619,10 +695,10 @@ export default function FaceCaptureStudio() {
           </div>
 
           <div className="w-full bg-slate-50 p-3 rounded-xl text-left text-xs text-slate-600 space-y-1 border border-slate-200">
-            <p className="font-semibold text-slate-800">💡 ขั้นตอนการใช้งาน:</p>
-            <p>• หน้าจอจะเปิดเป็นพื้นหลังสีขาวเต็มจอ</p>
-            <p>• จัดใบหน้าให้อยู่ในวงกลมตรงกลาง</p>
-            <p>• ทำท่าทางตามที่แจ้ง ระบบจะจับภาพอัตโนมัติทันที</p>
+            <p className="font-semibold text-slate-800">💡 จุดเด่นของระบบ:</p>
+            <p>• พื้นหลังสีขาวเต็มจอทำหน้าที่เป็นไฟสตูดิโอ</p>
+            <p>• จับภาพอัตโนมัติทันทีเมื่อท่าทางถูกต้อง</p>
+            <p>• ในท่าแสงสะท้อน จอจะสลับสี (ขาว, ส้ม, ฟ้า, เขียว) และบันทึกรัวให้อัตโนมัติ</p>
           </div>
 
           <button
@@ -634,22 +710,22 @@ export default function FaceCaptureStudio() {
         </main>
       )}
 
-      {/* 2. CAMERA STAGE (พื้นหลังขาวเต็มจอ ตรงกลางมีแค่วิดีโอวงกลม) */}
+      {/* 2. CAMERA STAGE (พื้นหลังสีขาว/สีแสงสะท้อนเต็มจอ ตรงกลางมีแค่วิดีโอวงกลม) */}
       {stage === 'camera' && (
         <div className="relative w-full h-full flex flex-col justify-between items-center py-6 px-4">
           {/* ส่วนบน: ข้อมูลท่าทาง & คำแนะนำ AI */}
           <div className="w-full flex flex-col items-center space-y-2 z-20">
             {/* ป้ายบอกลำดับท่าทาง */}
             <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-full shadow-sm">
+              <span className="px-3 py-1 bg-white/90 backdrop-blur border border-slate-200 text-slate-800 text-xs font-bold rounded-full shadow-sm">
                 ท่าที่ {currentPose.badge} : {currentPose.title}
               </span>
               <button
                 onClick={() => setAutoCaptureEnabled((prev) => !prev)}
-                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition ${
+                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition backdrop-blur ${
                   autoCaptureEnabled
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                    : 'bg-slate-100 text-slate-600 border-slate-300'
+                    : 'bg-white text-slate-600 border-slate-300'
                 }`}
               >
                 {autoCaptureEnabled ? '⚡ Auto' : '✋ กดเอง'}
@@ -657,19 +733,25 @@ export default function FaceCaptureStudio() {
             </div>
 
             {/* คำแนะนำคำสั่งท่าทาง */}
-            <p className="text-sm font-semibold text-slate-800 text-center px-4">
+            <p
+              className={`text-sm font-semibold text-center px-4 transition-colors ${
+                currentLightColor ? 'text-white drop-shadow-md' : 'text-slate-800'
+              }`}
+            >
               {currentPose.instruction}
             </p>
 
             {/* ข้อความ Feedback จาก AI */}
             <div className="h-6 flex items-center justify-center">
               <span
-                className={`text-xs font-bold px-3 py-0.5 rounded-full transition-all duration-200 ${
-                  poseMatched
+                className={`text-xs font-bold px-3 py-0.5 rounded-full transition-all duration-200 backdrop-blur ${
+                  currentLightColor
+                    ? 'bg-black/70 text-white'
+                    : poseMatched
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : faceDetected
-                    ? 'text-amber-600 bg-amber-50'
-                    : 'text-slate-400 bg-slate-100'
+                    ? 'text-amber-700 bg-amber-50 border border-amber-200'
+                    : 'text-slate-500 bg-white border border-slate-200'
                 }`}
               >
                 {aiFeedbackText}
@@ -680,8 +762,10 @@ export default function FaceCaptureStudio() {
           {/* ตรงกลาง: กล่องแสดงวิดีโอรูปวงกลม (Circular Video Viewport) */}
           <div className="flex-1 flex items-center justify-center w-full z-10">
             <div
-              className={`relative aspect-square w-64 sm:w-72 md:w-80 rounded-full overflow-hidden shadow-2xl transition-all duration-300 ${
-                poseMatched
+              className={`relative aspect-square w-64 sm:w-72 md:w-80 rounded-full overflow-hidden shadow-2xl transition-all duration-200 ${
+                currentLightColor
+                  ? 'border-4 border-white ring-8 ring-white/50 scale-[1.03]'
+                  : poseMatched
                   ? 'border-4 border-emerald-500 ring-8 ring-emerald-200/60 scale-[1.02]'
                   : faceDetected
                   ? 'border-4 border-blue-400'
@@ -714,7 +798,7 @@ export default function FaceCaptureStudio() {
             {currentPoseIndex > 0 ? (
               <button
                 onClick={goToPreviousPose}
-                className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
+                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
                 title="ย้อนกลับท่าก่อนหน้า"
               >
                 ⏮️
@@ -727,7 +811,7 @@ export default function FaceCaptureStudio() {
             <button
               onClick={handleManualCapture}
               className={`w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition ${
-                poseMatched
+                currentLightColor || poseMatched
                   ? 'bg-emerald-600 ring-4 ring-emerald-300'
                   : faceDetected
                   ? 'bg-blue-600 hover:bg-blue-700'
@@ -741,14 +825,14 @@ export default function FaceCaptureStudio() {
             {/* ปุ่มสลับกล้องหน้า/หลัง */}
             <button
               onClick={switchCamera}
-              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
+              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
               title="สลับกล้อง"
             >
               🔄
             </button>
           </div>
 
-          {/* เอฟเฟกต์ไฟแฟลชเต็มจอ */}
+          {/* เอฟเฟกต์ไฟแฟลช */}
           {flash && (
             <div className="fixed inset-0 bg-white pointer-events-none z-50 transition-opacity duration-150 opacity-100" />
           )}
@@ -760,8 +844,8 @@ export default function FaceCaptureStudio() {
         <main className="flex-1 w-full max-w-md mx-auto p-5 flex flex-col justify-center items-center text-center space-y-4">
           <div>
             <span className="text-4xl">🎉</span>
-            <h2 className="text-xl font-bold text-slate-900 mt-1">บันทึกครบ 9 ท่าทางแล้ว</h2>
-            <p className="text-xs text-slate-500">แตะที่รูปเพื่อถ่ายใหม่เฉพาะท่า หรือกดยืนยันเพื่อบันทึกลง Drive</p>
+            <h2 className="text-xl font-bold text-slate-900 mt-1">บันทึกภาพครบถ้วนแล้ว!</h2>
+            <p className="text-xs text-slate-500">รวมทั้งหมด {capturedImages.length} ภาพ (รวมแสงสะท้อน 4 สี)</p>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5 max-h-80 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200 w-full">
@@ -809,7 +893,7 @@ export default function FaceCaptureStudio() {
         <main className="flex-1 w-full max-w-sm mx-auto p-6 flex flex-col justify-center items-center text-center space-y-4">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent" />
           <h3 className="text-base font-bold text-slate-900">กำลังส่งรูปภาพเข้า Google Drive...</h3>
-          <p className="text-xs text-slate-500">กรุณารอสักครู่ ระบบกำลังจัดเก็บข้อมูลและโฟลเดอร์ให้คุณ</p>
+          <p className="text-xs text-slate-500">กรุณารอสักครู่ ระบบกำลังจัดเก็บข้อมูลลงโฟลเดอร์รหัสของคุณ</p>
         </main>
       )}
 
@@ -821,12 +905,12 @@ export default function FaceCaptureStudio() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">บันทึกสำเร็จเรียบร้อย!</h2>
-            <p className="text-xs text-slate-500 mt-1">รูปภาพทั้ง 9 ท่าทางถูกส่งเข้า Google Drive แล้ว</p>
+            <p className="text-xs text-slate-500 mt-1">ภาพถ่ายทั้งหมดถูกจัดเก็บลงในโฟลเดอร์ Google Drive เรียบร้อยแล้ว</p>
           </div>
 
           <div className="w-full p-3 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-200 text-left space-y-1">
             <p>
-              <span className="font-semibold">โฟลเดอร์:</span> {successInfo.folderName}
+              <span className="font-semibold">โฟลเดอร์รหัส:</span> {successInfo.folderName}
             </p>
             <p>
               <span className="font-semibold">จำนวนภาพที่บันทึก:</span> {successInfo.totalSaved} ภาพ
