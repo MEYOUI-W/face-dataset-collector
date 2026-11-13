@@ -649,75 +649,79 @@ export default function FaceCaptureStudio() {
       className="fixed inset-0 w-screen h-[100dvh] flex flex-col justify-between items-center transition-colors duration-300 overflow-hidden select-none"
       style={{
         backgroundColor: currentLightColor || (stage === 'camera' ? currentPose.bgColor : '#FFFFFF'),
+        paddingTop: 'max(env(safe-area-inset-top), 0.75rem)',
+        paddingBottom: 'max(env(safe-area-inset-bottom), 0.75rem)',
       }}
     >
-      {/* 1. INTRO STAGE */}
+      {/* 1. INTRO STAGE (Responsive Card) */}
       {stage === 'intro' && (
-        <main className="flex-1 w-full max-w-sm mx-auto p-6 flex flex-col justify-center items-center text-center space-y-6">
-          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-4xl shadow-inner border border-blue-100">
-            📸
-          </div>
-          <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">ลงทะเบียนภาพใบหน้า</h1>
-            <p className="text-xs text-slate-500 mt-1">ระบบตรวจจับและบันทึกอัตโนมัติ 8 ท่าทาง (พร้อมแสง 4 สี)</p>
-          </div>
-
-          <div className="w-full space-y-3 text-left">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                รหัสประจำตัว (ID เพื่อใช้เป็นชื่อโฟลเดอร์) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="เช่น 65012345 หรือ ID001"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition bg-white"
-              />
+        <main className="flex-1 w-full max-w-md mx-auto px-4 sm:px-6 flex flex-col justify-center items-center text-center overflow-y-auto py-4">
+          <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl p-5 sm:p-7 shadow-sm border border-slate-100 flex flex-col items-center space-y-4 sm:space-y-5">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl sm:text-4xl shadow-inner border border-blue-100">
+              📸
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                ชื่อ - นามสกุล (ถ้ามี)
-              </label>
-              <input
-                type="text"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                placeholder="เช่น สมชาย ใจดี"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition bg-white"
-              />
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">ลงทะเบียนภาพใบหน้า</h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">ระบบตรวจจับและบันทึกอัตโนมัติ 8 ท่าทาง</p>
             </div>
-          </div>
 
-          <div className="w-full bg-slate-50 p-3 rounded-xl text-left text-xs text-slate-600 space-y-1 border border-slate-200">
-            <p className="font-semibold text-slate-800">💡 จุดเด่นของระบบ:</p>
-            <p>• พื้นหลังสีขาวเต็มจอทำหน้าที่เป็นไฟสตูดิโอ</p>
-            <p>• จับภาพอัตโนมัติทันทีเมื่อท่าทางถูกต้อง</p>
-            <p>• ในท่าแสงสะท้อน จอจะสลับสี (ขาว, ส้ม, ฟ้า, เขียว) และบันทึกรัวให้อัตโนมัติ</p>
-          </div>
+            <div className="w-full space-y-3 text-left">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  รหัสประจำตัว (ID เพื่อใช้เป็นชื่อโฟลเดอร์) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="เช่น 65012345 หรือ ID001"
+                  className="w-full px-4 py-2.5 sm:py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-base sm:text-sm outline-none transition bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  ชื่อ - นามสกุล (ถ้ามี)
+                </label>
+                <input
+                  type="text"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="เช่น สมชาย ใจดี"
+                  className="w-full px-4 py-2.5 sm:py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-base sm:text-sm outline-none transition bg-white"
+                />
+              </div>
+            </div>
 
-          <button
-            onClick={handleStart}
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-md transition active:scale-[0.98]"
-          >
-            เริ่มเปิดกล้อง ➜
-          </button>
+            <div className="w-full bg-slate-50 p-3 sm:p-3.5 rounded-2xl text-left text-xs text-slate-600 space-y-1 border border-slate-200">
+              <p className="font-semibold text-slate-800">💡 จุดเด่นของระบบ:</p>
+              <p>• พื้นหลังสีขาวเต็มจอทำหน้าที่เป็นไฟสตูดิโอ</p>
+              <p>• จับภาพอัตโนมัติทันทีเมื่อท่าทางถูกต้อง</p>
+              <p>• ในท่าแสงสะท้อน จอจะสลับสี (ขาว, ส้ม, ฟ้า, เขียว) ให้อัตโนมัติ</p>
+            </div>
+
+            <button
+              onClick={handleStart}
+              className="w-full py-3 sm:py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm sm:text-base rounded-full shadow-md transition active:scale-[0.98]"
+            >
+              เริ่มเปิดกล้อง ➜
+            </button>
+          </div>
         </main>
       )}
 
-      {/* 2. CAMERA STAGE (พื้นหลังสีขาว/สีแสงสะท้อนเต็มจอ ตรงกลางมีแค่วิดีโอวงกลม) */}
+      {/* 2. CAMERA STAGE (Responsive Circular Viewport) */}
       {stage === 'camera' && (
-        <div className="relative w-full h-full flex flex-col justify-between items-center py-6 px-4">
+        <div className="relative w-full h-full flex flex-col justify-between items-center px-4">
           {/* ส่วนบน: ข้อมูลท่าทาง & คำแนะนำ AI */}
-          <div className="w-full flex flex-col items-center space-y-2 z-20">
+          <div className="w-full flex flex-col items-center space-y-1.5 sm:space-y-2 z-20 pt-1">
             {/* ป้ายบอกลำดับท่าทาง */}
             <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 bg-white/90 backdrop-blur border border-slate-200 text-slate-800 text-xs font-bold rounded-full shadow-sm">
+              <span className="px-3 py-1 bg-white/90 backdrop-blur border border-slate-200 text-slate-800 text-[11px] sm:text-xs font-bold rounded-full shadow-sm">
                 ท่าที่ {currentPose.badge} : {currentPose.title}
               </span>
               <button
                 onClick={() => setAutoCaptureEnabled((prev) => !prev)}
-                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition backdrop-blur ${
+                className={`text-[10px] sm:text-[11px] font-semibold px-2.5 py-1 rounded-full border transition backdrop-blur ${
                   autoCaptureEnabled
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                     : 'bg-white text-slate-600 border-slate-300'
@@ -729,7 +733,7 @@ export default function FaceCaptureStudio() {
 
             {/* คำแนะนำคำสั่งท่าทาง */}
             <p
-              className={`text-sm font-semibold text-center px-4 transition-colors ${
+              className={`text-xs sm:text-sm md:text-base font-semibold text-center px-4 max-w-md transition-colors ${
                 currentLightColor ? 'text-white drop-shadow-md' : 'text-slate-800'
               }`}
             >
@@ -737,11 +741,11 @@ export default function FaceCaptureStudio() {
             </p>
 
             {/* ข้อความ Feedback จาก AI */}
-            <div className="h-6 flex items-center justify-center">
+            <div className="h-6 sm:h-7 flex items-center justify-center">
               <span
-                className={`text-xs font-bold px-3 py-0.5 rounded-full transition-all duration-200 backdrop-blur ${
+                className={`text-[11px] sm:text-xs font-bold px-3 py-0.5 rounded-full transition-all duration-200 backdrop-blur ${
                   currentLightColor
-                    ? 'bg-black/70 text-white'
+                    ? 'bg-black/75 text-white'
                     : poseMatched
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : faceDetected
@@ -754,10 +758,10 @@ export default function FaceCaptureStudio() {
             </div>
           </div>
 
-          {/* ตรงกลาง: กล่องแสดงวิดีโอรูปวงกลม (Circular Video Viewport) */}
-          <div className="flex-1 flex items-center justify-center w-full z-10">
+          {/* ตรงกลาง: กล่องแสดงวิดีโอรูปวงกลม (Fluid Responsive Circle) */}
+          <div className="flex-1 flex items-center justify-center w-full z-10 py-2">
             <div
-              className={`relative aspect-square w-64 sm:w-72 md:w-80 rounded-full overflow-hidden shadow-2xl transition-all duration-200 ${
+              className={`relative aspect-square rounded-full overflow-hidden shadow-2xl transition-all duration-200 ${
                 currentLightColor
                   ? 'border-4 border-white ring-8 ring-white/50 scale-[1.03]'
                   : poseMatched
@@ -766,6 +770,10 @@ export default function FaceCaptureStudio() {
                   ? 'border-4 border-blue-400'
                   : 'border-4 border-slate-200'
               }`}
+              style={{
+                width: 'clamp(210px, min(70vw, 48vh), 360px)',
+                height: 'clamp(210px, min(70vw, 48vh), 360px)',
+              }}
             >
               <video
                 ref={videoRef}
@@ -778,34 +786,34 @@ export default function FaceCaptureStudio() {
               {/* Success Badge เมื่อจับภาพเสร็จ */}
               {isJustCaptured && (
                 <div className="absolute inset-0 bg-emerald-600/85 backdrop-blur-sm flex flex-col items-center justify-center text-white z-30 animate-fade-in">
-                  <div className="w-14 h-14 rounded-full bg-white text-emerald-600 flex items-center justify-center text-3xl font-bold shadow-lg mb-1">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white text-emerald-600 flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-lg mb-1">
                     ✓
                   </div>
-                  <p className="text-sm font-bold">บันทึกเรียบร้อย</p>
+                  <p className="text-xs sm:text-sm font-bold">บันทึกเรียบร้อย</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* ส่วนล่าง: ปุ่มควบคุมแบบ Minimal */}
-          <div className="w-full flex items-center justify-between max-w-xs px-4 pb-2 z-20">
+          {/* ส่วนล่าง: ปุ่มควบคุมแบบ Minimal (Responsive Spacing) */}
+          <div className="w-full flex items-center justify-between max-w-xs sm:max-w-sm px-4 pb-2 z-20">
             {/* ปุ่มย้อนกลับ */}
             {currentPoseIndex > 0 ? (
               <button
                 onClick={goToPreviousPose}
-                className="w-10 h-10 rounded-full bg-white/90 backdrop-blur hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/90 backdrop-blur hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-sm sm:text-base shadow-sm transition active:scale-95"
                 title="ย้อนกลับท่าก่อนหน้า"
               >
                 ⏮️
               </button>
             ) : (
-              <div className="w-10 h-10" />
+              <div className="w-10 h-10 sm:w-11 sm:h-11" />
             )}
 
             {/* ปุ่มชัตเตอร์ (สำหรับกดเอง) */}
             <button
               onClick={handleManualCapture}
-              className={`w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition ${
+              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-xl sm:text-2xl active:scale-95 transition ${
                 currentLightColor || poseMatched
                   ? 'bg-emerald-600 ring-4 ring-emerald-300'
                   : faceDetected
@@ -820,7 +828,7 @@ export default function FaceCaptureStudio() {
             {/* ปุ่มสลับกล้องหน้า/หลัง */}
             <button
               onClick={switchCamera}
-              className="w-10 h-10 rounded-full bg-white/90 backdrop-blur hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/90 backdrop-blur hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-sm sm:text-base shadow-sm transition active:scale-95"
               title="สลับกล้อง"
             >
               🔄
@@ -834,108 +842,115 @@ export default function FaceCaptureStudio() {
         </div>
       )}
 
-      {/* 3. REVIEW STAGE */}
+      {/* 3. REVIEW STAGE (Responsive Grid) */}
       {stage === 'review' && (
-        <main className="flex-1 w-full max-w-md mx-auto p-5 flex flex-col justify-center items-center text-center space-y-4">
-          <div>
-            <span className="text-4xl">🎉</span>
-            <h2 className="text-xl font-bold text-slate-900 mt-1">บันทึกภาพครบถ้วนแล้ว!</h2>
-            <p className="text-xs text-slate-500">รวมทั้งหมด {capturedImages.length} ภาพ (รวมแสงสะท้อน 4 สี)</p>
-          </div>
+        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-4 flex flex-col justify-center items-center text-center overflow-y-auto">
+          <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-100 space-y-3 sm:space-y-4 max-h-[92dvh] flex flex-col justify-between">
+            <div>
+              <span className="text-3xl sm:text-4xl">🎉</span>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">บันทึกภาพครบถ้วนแล้ว!</h2>
+              <p className="text-xs sm:text-sm text-slate-500">รวมทั้งหมด {capturedImages.length} ภาพ (รวมแสงสะท้อน 4 สี)</p>
+            </div>
 
-          <div className="grid grid-cols-3 gap-2.5 max-h-80 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200 w-full">
-            {capturedImages.map((img, i) => (
-              <div
-                key={i}
-                onClick={() => handleRetakeSinglePose(i)}
-                className="group relative aspect-square bg-slate-200 rounded-xl overflow-hidden border border-slate-300 shadow-sm cursor-pointer hover:ring-2 hover:ring-blue-500 transition"
+            {/* ตารางแสดงภาพ Responsive (มือถือ 3 คอลัมน์, แท็บเล็ต/คอม 4-6 คอลัมน์) */}
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5 max-h-[50vh] sm:max-h-[55vh] overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200 w-full">
+              {capturedImages.map((img, i) => (
+                <div
+                  key={i}
+                  onClick={() => handleRetakeSinglePose(i)}
+                  className="group relative aspect-square bg-slate-200 rounded-xl overflow-hidden border border-slate-300 shadow-sm cursor-pointer hover:ring-2 hover:ring-blue-500 transition"
+                >
+                  <img src={img.base64Data} alt={img.title} className="w-full h-full object-cover" />
+                  <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] sm:text-[10px] p-1 truncate text-center">
+                    {img.title}
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    🔄 ถ่ายใหม่
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="w-full max-w-sm mx-auto space-y-2 pt-1">
+              <button
+                onClick={handleUpload}
+                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm sm:text-base rounded-full shadow-md transition active:scale-[0.98]"
               >
-                <img src={img.base64Data} alt={img.title} className="w-full h-full object-cover" />
-                <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] p-1 truncate text-center">
-                  {img.title}
-                </div>
-                <div className="absolute inset-0 bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                  🔄 ถ่ายใหม่
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="w-full space-y-2 pt-2">
-            <button
-              onClick={handleUpload}
-              className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full shadow-md transition active:scale-[0.98]"
-            >
-              ☁️ บันทึกลง Google Drive
-            </button>
-            <button
-              onClick={() => {
-                setStage('camera');
-                setCurrentPoseIndex(0);
-                setCapturedImages([]);
-                setSingleRetakeIndex(null);
-              }}
-              className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
-            >
-              ถ่ายใหม่ทั้งหมดตั้งแต่ท่าแรก
-            </button>
+                ☁️ บันทึกลง Google Drive
+              </button>
+              <button
+                onClick={() => {
+                  setStage('camera');
+                  setCurrentPoseIndex(0);
+                  setCapturedImages([]);
+                  setSingleRetakeIndex(null);
+                }}
+                className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
+              >
+                ถ่ายใหม่ทั้งหมดตั้งแต่ท่าแรก
+              </button>
+            </div>
           </div>
         </main>
       )}
 
       {/* 4. UPLOADING STAGE */}
       {stage === 'uploading' && (
-        <main className="flex-1 w-full max-w-sm mx-auto p-6 flex flex-col justify-center items-center text-center space-y-4">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent" />
-          <h3 className="text-base font-bold text-slate-900">กำลังส่งรูปภาพเข้า Google Drive...</h3>
-          <p className="text-xs text-slate-500">กรุณารอสักครู่ ระบบกำลังจัดเก็บข้อมูลลงโฟลเดอร์รหัสของคุณ</p>
+        <main className="flex-1 w-full max-w-sm mx-auto px-4 sm:px-6 flex flex-col justify-center items-center text-center space-y-4">
+          <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 flex flex-col items-center space-y-4">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent" />
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">กำลังส่งรูปภาพเข้า Google Drive...</h3>
+            <p className="text-xs text-slate-500">กรุณารอสักครู่ ระบบกำลังจัดเก็บข้อมูลลงโฟลเดอร์รหัสของคุณ</p>
+          </div>
         </main>
       )}
 
       {/* 5. SUCCESS STAGE */}
       {stage === 'success' && successInfo && (
-        <main className="flex-1 w-full max-w-sm mx-auto p-6 flex flex-col justify-center items-center text-center space-y-5">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl shadow-inner border border-emerald-200">
-            ✓
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">บันทึกสำเร็จเรียบร้อย!</h2>
-            <p className="text-xs text-slate-500 mt-1">ภาพถ่ายทั้งหมดถูกจัดเก็บลงในโฟลเดอร์ Google Drive เรียบร้อยแล้ว</p>
-          </div>
+        <main className="flex-1 w-full max-w-md mx-auto px-4 sm:px-6 flex flex-col justify-center items-center text-center py-4">
+          <div className="w-full bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-100 flex flex-col items-center space-y-4 sm:space-y-5">
+            <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl shadow-inner border border-emerald-200">
+              ✓
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">บันทึกสำเร็จเรียบร้อย!</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">ภาพถ่ายทั้งหมดถูกจัดเก็บลงในโฟลเดอร์ Google Drive เรียบร้อยแล้ว</p>
+            </div>
 
-          <div className="w-full p-3 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-200 text-left space-y-1">
-            <p>
-              <span className="font-semibold">โฟลเดอร์รหัส:</span> {successInfo.folderName}
-            </p>
-            <p>
-              <span className="font-semibold">จำนวนภาพที่บันทึก:</span> {successInfo.totalSaved} ภาพ
-            </p>
-          </div>
+            <div className="w-full p-3 sm:p-4 bg-slate-50 rounded-2xl text-xs sm:text-sm text-slate-600 border border-slate-200 text-left space-y-1">
+              <p>
+                <span className="font-semibold text-slate-800">โฟลเดอร์รหัส:</span> {successInfo.folderName}
+              </p>
+              <p>
+                <span className="font-semibold text-slate-800">จำนวนภาพที่บันทึก:</span> {successInfo.totalSaved} ภาพ
+              </p>
+            </div>
 
-          {successInfo.folderUrl && (
-            <a
-              href={successInfo.folderUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full shadow transition text-center"
+            {successInfo.folderUrl && (
+              <a
+                href={successInfo.folderUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-full shadow transition text-center"
+              >
+                📂 เปิดดูโฟลเดอร์ใน Google Drive
+              </a>
+            )}
+
+            <button
+              onClick={() => {
+                setStage('intro');
+                setUserName('');
+                setUserId('');
+                setCapturedImages([]);
+                setSuccessInfo(null);
+                setSingleRetakeIndex(null);
+              }}
+              className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
             >
-              📂 เปิดดูโฟลเดอร์ใน Google Drive
-            </a>
-          )}
-
-          <button
-            onClick={() => {
-              setStage('intro');
-              setUserName('');
-              setUserId('');
-              setCapturedImages([]);
-              setSuccessInfo(null);
-              setSingleRetakeIndex(null);
-            }}
-            className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
-          >
-            ลงทะเบียนคนถัดไป
-          </button>
+              ลงทะเบียนคนถัดไป
+            </button>
+          </div>
         </main>
       )}
     </div>
