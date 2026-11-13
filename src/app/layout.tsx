@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Face Dataset Registration',
-  description: 'Self-service face recognition dataset collection studio',
+  description: 'Self-service face recognition dataset collection studio with face-api.js',
 };
 
 export default function RootLayout({
@@ -21,6 +21,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <script src="https://cdn.tailwindcss.com"></script>
+        {/* face-api.js library */}
+        <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
       </head>
       <body className="antialiased min-h-screen bg-white text-slate-800" style={{ fontFamily: "'Sarabun', sans-serif" }}>
         {children}

@@ -1,6 +1,13 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+
+// ประกาศตัวแปร global faceapi จาก CDN
+declare global {
+  interface Window {
+    faceapi: any;
+  }
+}
 
 interface PoseConfig {
   id: string;
@@ -127,12 +134,48 @@ export default function FaceCaptureStudio() {
   const [flash, setFlash] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ folderName: string; totalSaved: number; folderUrl?: string } | null>(null);
 
+  // สถานะ AI จาก face-api.js
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [aiFeedbackText, setAiFeedbackText] = useState('กำลังโหลดโมเดล AI...');
+  const [smileScore, setSmileScore] = useState<number | null>(null);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const detectIntervalRef = useRef<any>(null);
 
   const currentPose = POSES[currentPoseIndex];
 
-  // เปิดกล้องเมื่อเข้าสู่หน้า camera
+  // โหลดโมเดล face-api.js
+  useEffect(() => {
+    let checkCount = 0;
+    const interval = setInterval(async () => {
+      checkCount++;
+      if (typeof window !== 'undefined' && window.faceapi) {
+        clearInterval(interval);
+        try {
+          const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+          await Promise.all([
+            window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+            window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+            window.faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+          ]);
+          setModelsLoaded(true);
+          setAiFeedbackText('AI พร้อมทำงาน');
+        } catch (err) {
+          console.warn('โหลดโมเดล face-api.js ไม่สำเร็จ:', err);
+          setAiFeedbackText('AI โหมดพื้นฐาน');
+        }
+      } else if (checkCount > 30) {
+        clearInterval(interval);
+        setAiFeedbackText('AI โหมดพื้นฐาน');
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // เปิด/ปิดกล้องตาม Stage
   useEffect(() => {
     if (stage === 'camera') {
       startCamera();
@@ -165,11 +208,78 @@ export default function FaceCaptureStudio() {
   };
 
   const stopCamera = () => {
+    if (detectIntervalRef.current) {
+      clearInterval(detectIntervalRef.current);
+      detectIntervalRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
   };
+
+  // ลูปตรวจจับใบหน้าแบบ Real-time ด้วย face-api.js
+  const runFaceDetection = useCallback(async () => {
+    if (!videoRef.current || !modelsLoaded || !window.faceapi || videoRef.current.paused || videoRef.current.ended) {
+      return;
+    }
+
+    try {
+      const video = videoRef.current;
+      const options = new window.faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 });
+      const detections = await window.faceapi
+        .detectAllFaces(video, options)
+        .withFaceLandmarks()
+        .withFaceExpressions();
+
+      if (!detections || detections.length === 0) {
+        setFaceDetected(false);
+        setSmileScore(null);
+        setAiFeedbackText('🔍 กรุณาให้ใบหน้าอยู่หน้ากล้อง');
+        return;
+      }
+
+      if (detections.length > 1) {
+        setFaceDetected(false);
+        setSmileScore(null);
+        setAiFeedbackText('👥 ตรวจพบมากกว่า 1 คน กรุณาถ่ายทีละคน');
+        return;
+      }
+
+      const single = detections[0];
+      setFaceDetected(true);
+
+      // ตรวจจับรอยยิ้ม
+      const happyScore = single.expressions?.happy || 0;
+      setSmileScore(Math.round(happyScore * 100));
+
+      // ให้คำแนะนำสดตามท่าทางปัจจุบัน
+      if (currentPose.id === '02_frontal_smile') {
+        if (happyScore > 0.5) {
+          setAiFeedbackText(`😊 เยี่ยมมาก! กำลังยิ้ม (${Math.round(happyScore * 100)}%)`);
+        } else {
+          setAiFeedbackText('😐 หน้านิ่งอยู่ ยิ้มกว้างขึ้นอีกนิดครับ');
+        }
+      } else if (currentPose.id === '05_yaw_left_15' || currentPose.id === '06_yaw_left_30') {
+        setAiFeedbackText('👈 กำลังเอียงหันซ้าย พร้อมถ่าย');
+      } else if (currentPose.id === '07_yaw_right_15' || currentPose.id === '08_yaw_right_30') {
+        setAiFeedbackText('👉 กำลังเอียงหันขวา พร้อมถ่าย');
+      } else {
+        setAiFeedbackText('✅ ตรวจพบใบหน้า พร้อมถ่าย');
+      }
+    } catch {
+      // ignore frame check errors
+    }
+  }, [modelsLoaded, currentPose.id]);
+
+  useEffect(() => {
+    if (stage === 'camera' && modelsLoaded && !tempSnapshot) {
+      detectIntervalRef.current = setInterval(runFaceDetection, 250);
+    }
+    return () => {
+      if (detectIntervalRef.current) clearInterval(detectIntervalRef.current);
+    };
+  }, [stage, modelsLoaded, tempSnapshot, runFaceDetection]);
 
   const switchCamera = () => {
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
@@ -280,7 +390,7 @@ export default function FaceCaptureStudio() {
           </div>
           <div>
             <h1 className="text-sm font-bold text-slate-900 leading-tight">Face Dataset Collection</h1>
-            <p className="text-xs text-slate-500">บันทึกภาพลง Google Drive</p>
+            <p className="text-xs text-slate-500">face-api.js + Google Drive</p>
           </div>
         </div>
         {stage === 'camera' && (
@@ -301,7 +411,7 @@ export default function FaceCaptureStudio() {
             <div>
               <h2 className="text-xl font-bold text-slate-900">ลงทะเบียนเก็บภาพใบหน้า</h2>
               <p className="text-sm text-slate-500 mt-1">
-                ระบบจะแนะนำให้ถ่ายภาพทั้งหมด 12 ท่าทาง เพื่อนำไปใช้เป็นชุดข้อมูลสำหรับเทรนโมเดล
+                ระบบขับเคลื่อนด้วย <b>face-api.js</b> เพื่อช่วยตรวจจับท่าทางและบันทึกภาพลง Google Drive
               </p>
             </div>
 
@@ -333,10 +443,10 @@ export default function FaceCaptureStudio() {
             </div>
 
             <div className="bg-blue-50/70 p-3.5 rounded-xl text-left text-xs text-blue-900 space-y-1 border border-blue-100">
-              <p className="font-semibold">💡 ข้อแนะนำเพื่อให้ได้ภาพคุณภาพสูง:</p>
-              <p>• ถือกล้องให้อยู่ระดับสายตา และเว้นระยะห่างพอดี</p>
-              <p>• หน้าจอจะเปิดพื้นหลังสีขาวเพื่อช่วยส่องแสงสว่างให้ใบหน้า</p>
-              <p>• ไม่สวมหมวกหรือหน้ากากอนามัย</p>
+              <p className="font-semibold">💡 จุดเด่นระบบใหม่ (face-api.js):</p>
+              <p>• มี AI ตรวจจับใบหน้าและรอยยิ้มแบบ Real-time บนหน้าจอ</p>
+              <p>• หน้าจอเปิดพื้นหลังสีขาวเพื่อช่วยส่องแสงสว่างให้ใบหน้า</p>
+              <p>• บันทึกภาพดิบ 12 ท่าทางตรงเข้า Google Drive ของคุณ</p>
             </div>
 
             <button
@@ -368,7 +478,7 @@ export default function FaceCaptureStudio() {
               <p className="text-xs text-slate-500 mt-0.5">{currentPose.instruction}</p>
             </div>
 
-            {/* Camera Viewport with Oval Guide */}
+            {/* Camera Viewport with Oval Guide & Face-api Feedback */}
             <div className="relative w-full aspect-[3/4] max-h-[460px] bg-slate-900 rounded-2xl overflow-hidden shadow-md flex items-center justify-center">
               <video
                 ref={videoRef}
@@ -378,14 +488,29 @@ export default function FaceCaptureStudio() {
                 className={`w-full h-full object-cover ${facingMode === 'user' ? '-scale-x-100' : ''}`}
               />
 
-              {/* Oval Guide */}
+              {/* Status Badge จาก face-api.js ด้านบน */}
+              {!tempSnapshot && (
+                <div className="absolute top-3 inset-x-3 flex items-center justify-center pointer-events-none z-20">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur shadow transition-all ${
+                      faceDetected
+                        ? 'bg-emerald-600/90 text-white border border-emerald-400'
+                        : 'bg-black/60 text-slate-200 border border-white/20'
+                    }`}
+                  >
+                    {aiFeedbackText}
+                  </span>
+                </div>
+              )}
+
+              {/* Oval Guide (เปลี่ยนเป็นสีเขียวเมื่อตรวจพบหน้า) */}
               {!tempSnapshot && (
                 <div
-                  className="absolute pointer-events-none"
+                  className="absolute pointer-events-none transition-colors duration-300"
                   style={{
                     width: '62%',
                     height: '72%',
-                    border: '3px dashed rgba(59, 130, 246, 0.85)',
+                    border: faceDetected ? '3px solid rgba(16, 185, 129, 0.95)' : '3px dashed rgba(59, 130, 246, 0.85)',
                     borderRadius: '50% / 50%',
                     boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.22)',
                   }}
@@ -415,7 +540,9 @@ export default function FaceCaptureStudio() {
 
                   <button
                     onClick={takeSnapshot}
-                    className="w-16 h-16 rounded-full border-4 border-white bg-blue-600 hover:bg-blue-700 shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition"
+                    className={`w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition ${
+                      faceDetected ? 'bg-emerald-600 hover:bg-emerald-700 ring-4 ring-emerald-300/60' : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
                     📷
                   </button>
@@ -543,7 +670,7 @@ export default function FaceCaptureStudio() {
 
       {/* FOOTER */}
       <footer className="py-3 text-center text-xs text-slate-400">
-        Face Dataset Collection &copy; 2026
+        Face Dataset Collection with face-api.js &copy; 2026
       </footer>
     </div>
   );
