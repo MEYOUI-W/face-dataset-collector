@@ -18,77 +18,77 @@ interface PoseConfig {
   skippable: boolean;
 }
 
-// รายการท่าทางใหม่ 9 ท่าทางตามที่กำหนด
+// รายการท่าทาง 9 ท่าทาง
 const POSES: PoseConfig[] = [
   {
     id: '01_frontal_neutral',
-    title: '1. หน้าตรง',
-    instruction: 'มองตรงมาที่กล้อง สีหน้าปกติเป็นธรรมชาติ ไม่ต้องยิ้ม ไม่เอียงหน้า',
-    badge: 'ท่าที่ 1: หน้าตรง',
+    title: 'หน้าตรง',
+    instruction: 'มองตรงมาที่กล้อง สีหน้าปกติ ไม่ต้องยิ้ม',
+    badge: '1/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
   {
     id: '02_yaw_left',
-    title: '2. หันซ้าย',
-    instruction: 'หันใบหน้าไปทางซ้ายของคุณเล็กน้อย (~15° - 30°) ให้เห็นมิติด้านข้าง',
-    badge: 'ท่าที่ 2: หันซ้าย',
+    title: 'หันซ้าย',
+    instruction: 'หันศีรษะไปทางซ้ายของคุณเล็กน้อย (~20°)',
+    badge: '2/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
   {
     id: '03_yaw_right',
-    title: '3. หันขวา',
-    instruction: 'หันใบหน้าไปทางขวาของคุณเล็กน้อย (~15° - 30°) ให้เห็นมิติด้านข้าง',
-    badge: 'ท่าที่ 3: หันขวา',
+    title: 'หันขวา',
+    instruction: 'หันศีรษะไปทางขวาของคุณเล็กน้อย (~20°)',
+    badge: '3/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
   {
     id: '04_pitch_down',
-    title: '4. ก้มหน้า',
+    title: 'ก้มหน้า',
     instruction: 'ก้มหน้าลงเล็กน้อย และช้อนสายตามองกล้อง',
-    badge: 'ท่าที่ 4: ก้มหน้า',
+    badge: '4/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
   {
     id: '05_pitch_up',
-    title: '5. เงยหน้า',
+    title: 'เงยหน้า',
     instruction: 'เชิดคางและเงยหน้าขึ้นเล็กน้อย สบตากับกล้อง',
-    badge: 'ท่าที่ 5: เงยหน้า',
+    badge: '5/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
   {
     id: '06_screen_light',
-    title: '6. แสงสะท้อนบนใบหน้า',
-    instruction: 'หน้าจอจะส่องแสงสว่าง มองตรงที่กล้องเพื่อบันทึกแสงตกกระทบผิวหน้า',
-    badge: 'ท่าที่ 6: แสงสะท้อน',
-    bgColor: '#FFF5E8',
+    title: 'แสงสะท้อนบนใบหน้า',
+    instruction: 'มองตรงที่กล้อง เพื่อรับแสงสะท้อนจากหน้าจอ',
+    badge: '6/9',
+    bgColor: '#FFF7ED',
     skippable: false,
   },
   {
     id: '07_slight_smile',
-    title: '7. ยิ้มเล็กน้อย',
-    instruction: 'มองตรงและยิ้มเล็กน้อยอย่างเป็นธรรมชาติ ให้มุมปากยกขึ้น',
-    badge: 'ท่าที่ 7: ยิ้มเล็กน้อย',
+    title: 'ยิ้มเล็กน้อย',
+    instruction: 'มองตรงและยิ้มเล็กน้อย ให้มุมปากยกขึ้น',
+    badge: '7/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
   {
     id: '08_squint_eyes',
-    title: '8. หรี่ตา',
-    instruction: 'มองตรงและหรี่ตาลงเล็กน้อย (หรี่ตาเพื่อสู้แสง ไม่ต้องหลับตา)',
-    badge: 'ท่าที่ 8: หรี่ตา',
+    title: 'หรี่ตา',
+    instruction: 'มองตรงและหรี่ตาลงเล็กน้อย (ไม่ต้องหลับตา)',
+    badge: '8/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
   {
     id: '09_closed_eyes',
-    title: '9. ปิดตา',
-    instruction: 'หลับตาทั้งสองข้างและทำหน้านิ่งเป็นธรรมชาติ',
-    badge: 'ท่าที่ 9: ปิดตา',
+    title: 'ปิดตา',
+    instruction: 'หลับตาทั้งสองข้างให้สนิท ทำหน้านิ่ง',
+    badge: '9/9',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -100,7 +100,7 @@ interface CapturedImage {
   base64Data: string;
 }
 
-// คำนวณ Eye Aspect Ratio (EAR) จากจุด Landmark 6 จุดของดวงตา
+// คำนวณ Eye Aspect Ratio (EAR) จากจุด Landmark 6 จุด
 function calculateEAR(eyePoints: { x: number; y: number }[]): number {
   if (!eyePoints || eyePoints.length < 6) return 0.3;
   const v1 = Math.hypot(eyePoints[1].x - eyePoints[5].x, eyePoints[1].y - eyePoints[5].y);
@@ -136,13 +136,13 @@ export default function FaceCaptureStudio() {
   const detectIntervalRef = useRef<any>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Refs ตรวจจับความต่อเนื่องเพื่อป้องกัน False-Trigger
+  // Refs ตรวจจับความนิ่งต่อเนื่องเพื่อความแม่นยำ
   const steadyMatchFramesRef = useRef(0);
   const isCoolingDownRef = useRef(false);
 
   const currentPose = POSES[currentPoseIndex];
 
-  // เล่นเสียงชัตเตอร์ (Web Audio API)
+  // เล่นเสียงชัตเตอร์แบบสังเคราะห์
   const playShutterSound = useCallback(() => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -168,7 +168,7 @@ export default function FaceCaptureStudio() {
       osc.start();
       osc.stop(ctx.currentTime + 0.09);
     } catch {
-      // ignore audio error
+      // ignore
     }
   }, []);
 
@@ -262,12 +262,12 @@ export default function FaceCaptureStudio() {
 
     playShutterSound();
     setFlash(true);
-    setTimeout(() => setFlash(false), 180);
+    setTimeout(() => setFlash(false), 160);
 
     return canvas.toDataURL('image/jpeg', 0.92);
   }, [facingMode, playShutterSound]);
 
-  // เมื่อภาพถูกจับและบันทึก
+  // เมื่อบันทึกภาพสำเร็จ
   const saveAndAdvance = useCallback((dataUrl: string) => {
     const newEntry: CapturedImage = {
       poseName: currentPose.id,
@@ -291,35 +291,34 @@ export default function FaceCaptureStudio() {
     steadyMatchFramesRef.current = 0;
     isCoolingDownRef.current = true;
 
-    // หากเป็นการถ่ายซ้ำเฉพาะท่าจากหน้า Review ให้กลับไป Review ทันที
+    // หากเป็นการถ่ายซ้ำเฉพาะท่าจากหน้า Review
     if (singleRetakeIndex !== null) {
       setTimeout(() => {
         setIsJustCaptured(false);
         setSingleRetakeIndex(null);
         setStage('review');
         isCoolingDownRef.current = false;
-      }, 700);
+      }, 600);
       return;
     }
 
-    // หน่วงเวลาเล็กน้อย 0.8 วิ ให้ผู้ใช้เห็นข้อความสำเร็จ แล้วไปยังท่าต่อไป
+    // หน่วงเวลา 0.7 วิ แล้วไปยังท่าต่อไป
     setTimeout(() => {
       setIsJustCaptured(false);
       if (currentPoseIndex + 1 < POSES.length) {
         setCurrentPoseIndex((prev) => prev + 1);
         setAiFeedbackText(`👉 เตรียมตัว: ${POSES[currentPoseIndex + 1].title}`);
-        // ให้เวลา 1.1 วินาทีในการขยับท่าทางก่อนเริ่มตรวจจับท่าถัดไป
         setTimeout(() => {
           isCoolingDownRef.current = false;
-        }, 1100);
+        }, 1000);
       } else {
         isCoolingDownRef.current = false;
         setStage('review');
       }
-    }, 750);
+    }, 700);
   }, [currentPose.id, currentPose.title, currentPoseIndex, singleRetakeIndex]);
 
-  // ชัตเตอร์กดเอง (Manual)
+  // ชัตเตอร์กดเอง
   const handleManualCapture = () => {
     const dataUrl = captureFrame();
     if (dataUrl) {
@@ -327,7 +326,7 @@ export default function FaceCaptureStudio() {
     }
   };
 
-  // ตรวจสอบความถูกต้องของท่าทางอย่างแม่นยำ (Strict Landmark Validation)
+  // ตรวจสอบเงื่อนไขท่าทางอย่างแม่นยำ
   const validatePoseCriteria = useCallback((single: any, poseId: string): { matched: boolean; feedback: string } => {
     const landmarks = single.landmarks;
     const expressions = single.expressions || {};
@@ -336,22 +335,22 @@ export default function FaceCaptureStudio() {
     const leftEye = landmarks.getLeftEye();
     const rightEye = landmarks.getRightEye();
 
-    // 1. คำนวณ Yaw (การหันซ้าย-ขวา)
+    // 1. Yaw
     const jawLeft = jaw[0];
     const jawRight = jaw[16];
-    const noseTip = nose[3]; // จุดที่ 30
+    const noseTip = nose[3];
     const jawWidth = Math.abs(jawRight.x - jawLeft.x);
     const noseDistToLeft = Math.abs(noseTip.x - jawLeft.x);
     const yawRatio = jawWidth > 0 ? noseDistToLeft / jawWidth : 0.5;
 
-    // 2. คำนวณ Pitch (ก้มหน้า-เงยหน้า)
-    const noseBridge = nose[0]; // จุดที่ 27
-    const chin = jaw[8]; // คาง
+    // 2. Pitch
+    const noseBridge = nose[0];
+    const chin = jaw[8];
     const upperH = Math.abs(noseTip.y - noseBridge.y);
     const lowerH = Math.abs(chin.y - noseTip.y);
     const pitchRatio = (upperH + lowerH) > 0 ? upperH / (upperH + lowerH) : 0.45;
 
-    // 3. คำนวณ Eye Aspect Ratio (EAR)
+    // 3. EAR (ดวงตา)
     const earLeft = calculateEAR(leftEye);
     const earRight = calculateEAR(rightEye);
     const avgEar = (earLeft + earRight) / 2;
@@ -361,98 +360,55 @@ export default function FaceCaptureStudio() {
 
     switch (poseId) {
       case '01_frontal_neutral':
-        // หน้าตรง: yaw อยู่ตรงกลาง (0.43 - 0.57), pitch อยู่ตรงกลาง (0.35 - 0.51), ตาเปิด (> 0.20), หน้านิ่ง
-        if (yawRatio > 0.58) {
-          return { matched: false, feedback: '👈 หันหน้าตรงครับ (กำลังเอียงซ้าย)' };
-        }
-        if (yawRatio < 0.42) {
-          return { matched: false, feedback: '👉 หันหน้าตรงครับ (กำลังเอียงขวา)' };
-        }
-        if (pitchRatio > 0.52) {
-          return { matched: false, feedback: '👆 เงยหน้าขึ้นอีกนิดครับ (ก้มอยู่)' };
-        }
-        if (pitchRatio < 0.34) {
-          return { matched: false, feedback: '👇 ก้มหน้าลงอีกนิดครับ (เงยอยู่)' };
-        }
-        if (happyScore > 0.35) {
-          return { matched: false, feedback: '😐 กรุณาทำหน้านิ่งเป็นธรรมชาติครับ' };
-        }
-        if (avgEar < 0.18) {
-          return { matched: false, feedback: '👁️ ลืมตาตามปกติครับ' };
-        }
-        return { matched: true, feedback: '✅ หน้าตรงถูกต้อง!' };
+        if (yawRatio > 0.58) return { matched: false, feedback: '👈 กรุณามองตรง (เอียงซ้าย)' };
+        if (yawRatio < 0.42) return { matched: false, feedback: '👉 กรุณามองตรง (เอียงขวา)' };
+        if (pitchRatio > 0.52) return { matched: false, feedback: '👆 เงยหน้าขึ้นอีกนิดครับ' };
+        if (pitchRatio < 0.34) return { matched: false, feedback: '👇 ก้มหน้าลงอีกนิดครับ' };
+        if (happyScore > 0.35) return { matched: false, feedback: '😐 กรุณาทำหน้านิ่งครับ' };
+        if (avgEar < 0.18) return { matched: false, feedback: '👁️ ลืมตาตามปกติครับ' };
+        return { matched: true, feedback: '✅ หน้าตรงถูกต้อง' };
 
       case '02_yaw_left':
-        // หันซ้าย: yawRatio ต้องเอียงชัดเจน (>= 0.58)
-        if (yawRatio < 0.46) {
-          return { matched: false, feedback: '👈 กรุณาหันไปทางซ้ายครับ (กำลังหันขวา)' };
-        }
-        if (yawRatio < 0.57) {
-          return { matched: false, feedback: '👈 หันหน้าไปทางซ้ายอีกนิดครับ' };
-        }
-        return { matched: true, feedback: '✅ หันซ้ายถูกต้อง!' };
+        if (yawRatio < 0.46) return { matched: false, feedback: '👈 กรุณาหันไปทางซ้ายครับ' };
+        if (yawRatio < 0.57) return { matched: false, feedback: '👈 หันซ้ายอีกนิดครับ' };
+        return { matched: true, feedback: '✅ หันซ้ายถูกต้อง' };
 
       case '03_yaw_right':
-        // หันขวา: yawRatio ต้องเอียงชัดเจน (<= 0.43)
-        if (yawRatio > 0.54) {
-          return { matched: false, feedback: '👉 กรุณาหันไปทางขวาครับ (กำลังหันซ้าย)' };
-        }
-        if (yawRatio > 0.43) {
-          return { matched: false, feedback: '👉 หันหน้าไปทางขวาอีกนิดครับ' };
-        }
-        return { matched: true, feedback: '✅ หันขวาถูกต้อง!' };
+        if (yawRatio > 0.54) return { matched: false, feedback: '👉 กรุณาหันไปทางขวาครับ' };
+        if (yawRatio > 0.43) return { matched: false, feedback: '👉 หันขวาอีกนิดครับ' };
+        return { matched: true, feedback: '✅ หันขวาถูกต้อง' };
 
       case '04_pitch_down':
-        // ก้มหน้า: pitchRatio >= 0.51 (คางชิด)
-        if (pitchRatio < 0.50) {
-          return { matched: false, feedback: '👇 ก้มหน้าลงอีกนิด และมองกล้องครับ' };
-        }
-        return { matched: true, feedback: '✅ ก้มหน้าถูกต้อง!' };
+        if (pitchRatio < 0.50) return { matched: false, feedback: '👇 ก้มหน้าลงอีกนิดครับ' };
+        return { matched: true, feedback: '✅ ก้มหน้าถูกต้อง' };
 
       case '05_pitch_up':
-        // เงยหน้า: pitchRatio <= 0.35 (เชิดคาง)
-        if (pitchRatio > 0.36) {
-          return { matched: false, feedback: '☝️ เชิดคางและเงยหน้าขึ้นอีกนิดครับ' };
-        }
-        return { matched: true, feedback: '✅ เงยหน้าถูกต้อง!' };
+        if (pitchRatio > 0.36) return { matched: false, feedback: '☝️ เงยหน้าขึ้นอีกนิดครับ' };
+        return { matched: true, feedback: '✅ เงยหน้าถูกต้อง' };
 
       case '06_screen_light':
-        // แสงสะท้อน: หน้าตรงรับแสงสะท้อนจากจอ
-        if (yawRatio < 0.42 || yawRatio > 0.58) {
-          return { matched: false, feedback: '💡 มองตรงที่กล้องเพื่อรับแสงสะท้อนครับ' };
-        }
-        return { matched: true, feedback: '✅ แสงสะท้อนและหน้าตรงถูกต้อง!' };
+        if (yawRatio < 0.42 || yawRatio > 0.58) return { matched: false, feedback: '💡 มองตรงเพื่อรับแสงหน้าจอครับ' };
+        return { matched: true, feedback: '✅ แสงสะท้อนพร้อม' };
 
       case '07_slight_smile':
-        // ยิ้มเล็กน้อย: happyScore >= 0.25
-        if (happyScore < 0.22) {
-          return { matched: false, feedback: '😊 ยิ้มเล็กน้อยให้มุมปากยกขึ้นครับ' };
-        }
-        return { matched: true, feedback: `✅ รอยยิ้มถูกต้อง (${Math.round(happyScore * 100)}%)!` };
+        if (happyScore < 0.22) return { matched: false, feedback: '😊 ยิ้มเล็กน้อยให้มุมปากยกขึ้นครับ' };
+        return { matched: true, feedback: '✅ ยิ้มกำลังดี' };
 
       case '08_squint_eyes':
-        // หรี่ตา: avgEar แคบลง (0.12 - 0.22)
-        if (avgEar > 0.24) {
-          return { matched: false, feedback: '😑 กรุณาหรี่ตาลงอีกนิดครับ (สู้แสง)' };
-        }
-        if (avgEar < 0.11) {
-          return { matched: false, feedback: '👁️ อย่าเพิ่งหลับตาสนิทครับ แค่หรี่ตา' };
-        }
-        return { matched: true, feedback: '✅ หรี่ตาถูกต้อง!' };
+        if (avgEar > 0.24) return { matched: false, feedback: '😑 กรุณาหรี่ตาลงอีกนิดครับ' };
+        if (avgEar < 0.11) return { matched: false, feedback: '👁️ แค่หรี่ตา อย่าเพิ่งหลับตาสนิทครับ' };
+        return { matched: true, feedback: '✅ หรี่ตาถูกต้อง' };
 
       case '09_closed_eyes':
-        // ปิดตา: avgEar < 0.13 (หลับตาสนิท)
-        if (avgEar >= 0.14) {
-          return { matched: false, feedback: '😌 กรุณาหลับตาทั้งสองข้างให้สนิทครับ' };
-        }
-        return { matched: true, feedback: '✅ ปิดตาสนิทถูกต้อง!' };
+        if (avgEar >= 0.14) return { matched: false, feedback: '😌 กรุณาหลับตาทั้งสองข้างครับ' };
+        return { matched: true, feedback: '✅ ปิดตาสนิทแล้ว' };
 
       default:
         return { matched: true, feedback: '✅ ท่าทางถูกต้อง' };
     }
   }, []);
 
-  // ลูปตรวจจับใบหน้าแบบ Real-time ด้วย face-api.js
+  // ลูปตรวจจับใบหน้า
   const runFaceDetection = useCallback(async () => {
     if (
       !videoRef.current ||
@@ -478,7 +434,7 @@ export default function FaceCaptureStudio() {
         setFaceDetected(false);
         setPoseMatched(false);
         steadyMatchFramesRef.current = 0;
-        setAiFeedbackText('🔍 กรุณาให้ใบหน้าอยู่หน้ากล้อง');
+        setAiFeedbackText('🔍 จัดใบหน้าให้อยู่ในวงกลม');
         return;
       }
 
@@ -486,14 +442,13 @@ export default function FaceCaptureStudio() {
         setFaceDetected(false);
         setPoseMatched(false);
         steadyMatchFramesRef.current = 0;
-        setAiFeedbackText('👥 ตรวจพบมากกว่า 1 คน กรุณาถ่ายทีละคน');
+        setAiFeedbackText('👥 กรุณาถ่ายทีละคนครับ');
         return;
       }
 
       const single = detections[0];
       setFaceDetected(true);
 
-      // ตรวจสอบเงื่อนไขของท่าทางปัจจุบัน
       const validation = validatePoseCriteria(single, currentPose.id);
       setAiFeedbackText(validation.feedback);
 
@@ -501,7 +456,7 @@ export default function FaceCaptureStudio() {
         setPoseMatched(true);
         steadyMatchFramesRef.current += 1;
 
-        // ไม่ต้องนับถอยหลัง: เมื่อท่าทางถูกต้องและนิ่ง 2 เฟรมต่อเนื่อง (~150-200ms) จับภาพทันที!
+        // เมื่อท่าทางถูกต้องนิ่ง ~150ms ให้จับภาพทันที
         if (autoCaptureEnabled && steadyMatchFramesRef.current >= 2) {
           steadyMatchFramesRef.current = 0;
           const dataUrl = captureFrame();
@@ -514,7 +469,7 @@ export default function FaceCaptureStudio() {
         steadyMatchFramesRef.current = 0;
       }
     } catch {
-      // ignore detection errors
+      // ignore
     }
   }, [modelsLoaded, isJustCaptured, currentPose.id, autoCaptureEnabled, validatePoseCriteria, captureFrame, saveAndAdvance]);
 
@@ -552,10 +507,6 @@ export default function FaceCaptureStudio() {
     setSingleRetakeIndex(null);
     steadyMatchFramesRef.current = 0;
     isCoolingDownRef.current = false;
-  };
-
-  const skipPose = () => {
-    advancePose();
   };
 
   const advancePose = () => {
@@ -625,129 +576,117 @@ export default function FaceCaptureStudio() {
 
   return (
     <div
-      className="min-h-screen flex flex-col justify-between transition-colors duration-500 font-sans"
+      className="fixed inset-0 w-screen h-[100dvh] flex flex-col justify-between items-center transition-colors duration-500 overflow-hidden select-none"
       style={{ backgroundColor: stage === 'camera' ? currentPose.bgColor : '#FFFFFF' }}
     >
-      {/* HEADER */}
-      <header className="w-full bg-white/90 backdrop-blur border-b border-slate-200 py-3 px-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow">
-            AI
+      {/* 1. INTRO STAGE */}
+      {stage === 'intro' && (
+        <main className="flex-1 w-full max-w-sm mx-auto p-6 flex flex-col justify-center items-center text-center space-y-6">
+          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-4xl shadow-inner border border-blue-100">
+            📸
           </div>
           <div>
-            <h1 className="text-sm font-bold text-slate-900 leading-tight">Face Dataset Collection</h1>
-            <p className="text-xs text-slate-500">Auto Snap on Pose Matched</p>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">ลงทะเบียนภาพใบหน้า</h1>
+            <p className="text-xs text-slate-500 mt-1">ระบบตรวจจับและบันทึกอัตโนมัติ 9 ท่าทาง</p>
           </div>
-        </div>
 
-        {stage === 'camera' && (
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setAutoCaptureEnabled((prev) => !prev)}
-              className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition flex items-center space-x-1 ${
-                autoCaptureEnabled
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                  : 'bg-slate-100 text-slate-600 border-slate-300'
-              }`}
-              title="เปิด/ปิดการจับภาพอัตโนมัติเมื่อท่าทางถูกต้อง"
-            >
-              <span>{autoCaptureEnabled ? '⚡ Auto Snap' : '✋ กดเอง'}</span>
-            </button>
-            <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
-              {currentPoseIndex + 1} / {POSES.length}
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* MAIN CONTAINER */}
-      <main className="flex-1 w-full max-w-md mx-auto p-4 flex flex-col justify-center">
-        {/* 1. INTRO STAGE */}
-        {stage === 'intro' && (
-          <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center space-y-5">
-            <div className="w-16 h-16 mx-auto bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
-              🎯
-            </div>
+          <div className="w-full space-y-3 text-left">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">บันทึกภาพใบหน้า 9 ท่าทาง</h2>
-              <p className="text-sm text-slate-500 mt-1">
-                ระบบ AI ตรวจจับท่าทางแม่นยำ <b>จับภาพทันทีเมื่อทำท่าทางถูกต้อง</b>
-              </p>
-            </div>
-
-            <div className="text-left space-y-4 pt-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ชื่อ - นามสกุล <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  placeholder="เช่น สมชาย ใจดี"
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none transition"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  รหัสนักศึกษา / รหัสพนักงาน (ถ้ามี)
-                </label>
-                <input
-                  type="text"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  placeholder="เช่น 65012345"
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none transition"
-                />
-              </div>
-            </div>
-
-            <div className="bg-blue-50/70 p-3.5 rounded-xl text-left text-xs text-blue-950 space-y-1.5 border border-blue-200">
-              <p className="font-semibold text-blue-900">✨ ท่าทางทั้ง 9 ท่าที่จะบันทึก:</p>
-              <p>• 1. หน้าตรง 2. หันซ้าย 3. หันขวา</p>
-              <p>• 4. ก้มหน้า 5. เงยหน้า 6. แสงสะท้อนบนใบหน้า</p>
-              <p>• 7. ยิ้มเล็กน้อย 8. หรี่ตา 9. ปิดตา</p>
-              <p className="text-emerald-700 font-semibold pt-1">
-                ⚡ ทำท่าทางตามคำแนะนำบนจอ เมื่อถูกต้องระบบจะจับภาพทันทีอัตโนมัติ!
-              </p>
-            </div>
-
-            <button
-              onClick={handleStart}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition active:scale-[0.98]"
-            >
-              เริ่มเปิดกล้อง ➜
-            </button>
-          </section>
-        )}
-
-        {/* 2. CAMERA STAGE */}
-        {stage === 'camera' && (
-          <section className="flex flex-col items-center space-y-3">
-            {/* Progress Bar */}
-            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-emerald-500 h-full transition-all duration-300"
-                style={{ width: `${((currentPoseIndex + 1) / POSES.length) * 100}%` }}
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ชื่อ - นามสกุล <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="เช่น สมชาย ใจดี"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition bg-white"
               />
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                รหัสประจำตัว (ถ้ามี)
+              </label>
+              <input
+                type="text"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="เช่น 65012345"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition bg-white"
+              />
+            </div>
+          </div>
 
-            {/* Instruction Card */}
-            <div className="w-full bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm text-center relative">
-              {singleRetakeIndex !== null && (
-                <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                  ถ่ายใหม่เฉพาะท่านี้
-                </span>
-              )}
-              <div className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 mb-1">
-                {currentPose.badge}
-              </div>
-              <h3 className="text-base font-bold text-slate-900">{currentPose.title}</h3>
-              <p className="text-xs text-slate-600 font-medium mt-0.5">{currentPose.instruction}</p>
+          <div className="w-full bg-slate-50 p-3 rounded-xl text-left text-xs text-slate-600 space-y-1 border border-slate-200">
+            <p className="font-semibold text-slate-800">💡 ขั้นตอนการใช้งาน:</p>
+            <p>• หน้าจอจะเปิดเป็นพื้นหลังสีขาวเต็มจอ</p>
+            <p>• จัดใบหน้าให้อยู่ในวงกลมตรงกลาง</p>
+            <p>• ทำท่าทางตามที่แจ้ง ระบบจะจับภาพอัตโนมัติทันที</p>
+          </div>
+
+          <button
+            onClick={handleStart}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-md transition active:scale-[0.98]"
+          >
+            เริ่มเปิดกล้อง ➜
+          </button>
+        </main>
+      )}
+
+      {/* 2. CAMERA STAGE (พื้นหลังขาวเต็มจอ ตรงกลางมีแค่วิดีโอวงกลม) */}
+      {stage === 'camera' && (
+        <div className="relative w-full h-full flex flex-col justify-between items-center py-6 px-4">
+          {/* ส่วนบน: ข้อมูลท่าทาง & คำแนะนำ AI */}
+          <div className="w-full flex flex-col items-center space-y-2 z-20">
+            {/* ป้ายบอกลำดับท่าทาง */}
+            <div className="flex items-center space-x-2">
+              <span className="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-full shadow-sm">
+                ท่าที่ {currentPose.badge} : {currentPose.title}
+              </span>
+              <button
+                onClick={() => setAutoCaptureEnabled((prev) => !prev)}
+                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition ${
+                  autoCaptureEnabled
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                    : 'bg-slate-100 text-slate-600 border-slate-300'
+                }`}
+              >
+                {autoCaptureEnabled ? '⚡ Auto' : '✋ กดเอง'}
+              </button>
             </div>
 
-            {/* Camera Viewport with Oval Guide & Face-api Feedback */}
-            <div className="relative w-full aspect-[3/4] max-h-[460px] bg-slate-900 rounded-2xl overflow-hidden shadow-md flex items-center justify-center">
+            {/* คำแนะนำคำสั่งท่าทาง */}
+            <p className="text-sm font-semibold text-slate-800 text-center px-4">
+              {currentPose.instruction}
+            </p>
+
+            {/* ข้อความ Feedback จาก AI */}
+            <div className="h-6 flex items-center justify-center">
+              <span
+                className={`text-xs font-bold px-3 py-0.5 rounded-full transition-all duration-200 ${
+                  poseMatched
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : faceDetected
+                    ? 'text-amber-600 bg-amber-50'
+                    : 'text-slate-400 bg-slate-100'
+                }`}
+              >
+                {aiFeedbackText}
+              </span>
+            </div>
+          </div>
+
+          {/* ตรงกลาง: กล่องแสดงวิดีโอรูปวงกลม (Circular Video Viewport) */}
+          <div className="flex-1 flex items-center justify-center w-full z-10">
+            <div
+              className={`relative aspect-square w-64 sm:w-72 md:w-80 rounded-full overflow-hidden shadow-2xl transition-all duration-300 ${
+                poseMatched
+                  ? 'border-4 border-emerald-500 ring-8 ring-emerald-200/60 scale-[1.02]'
+                  : faceDetected
+                  ? 'border-4 border-blue-400'
+                  : 'border-4 border-slate-200'
+              }`}
+            >
               <video
                 ref={videoRef}
                 autoPlay
@@ -756,217 +695,169 @@ export default function FaceCaptureStudio() {
                 className={`w-full h-full object-cover ${facingMode === 'user' ? '-scale-x-100' : ''}`}
               />
 
-              {/* Status Badge ด้านบนพร้อมคำแนะนำ Real-time */}
-              <div className="absolute top-3 inset-x-3 flex items-center justify-center pointer-events-none z-20">
-                <span
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold backdrop-blur shadow transition-all ${
-                    poseMatched
-                      ? 'bg-emerald-600 text-white border border-emerald-400 scale-105'
-                      : faceDetected
-                      ? 'bg-amber-500/90 text-white border border-amber-300'
-                      : 'bg-black/60 text-slate-200 border border-white/20'
-                  }`}
-                >
-                  {aiFeedbackText}
-                </span>
-              </div>
-
-              {/* Oval Guide (เปลี่ยนเป็นสีเขียวหนาขึ้นทันทีเมื่อท่าทางตรงเป๊ะ) */}
-              <div
-                className="absolute pointer-events-none transition-all duration-200"
-                style={{
-                  width: '62%',
-                  height: '72%',
-                  border: poseMatched
-                    ? '4px solid #10B981'
-                    : faceDetected
-                    ? '3px solid rgba(245, 158, 11, 0.9)'
-                    : '3px dashed rgba(59, 130, 246, 0.85)',
-                  borderRadius: '50% / 50%',
-                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.22)',
-                }}
-              />
-
-              {/* Flash effect */}
-              {flash && <div className="absolute inset-0 bg-white pointer-events-none transition-opacity duration-150 opacity-95 z-40" />}
-
-              {/* Just Captured Success Message */}
+              {/* Success Badge เมื่อจับภาพเสร็จ */}
               {isJustCaptured && (
-                <div className="absolute inset-0 bg-emerald-950/75 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none z-30 text-white animate-fade-in">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center text-3xl font-bold shadow-lg mb-2">
+                <div className="absolute inset-0 bg-emerald-600/85 backdrop-blur-sm flex flex-col items-center justify-center text-white z-30 animate-fade-in">
+                  <div className="w-14 h-14 rounded-full bg-white text-emerald-600 flex items-center justify-center text-3xl font-bold shadow-lg mb-1">
                     ✓
                   </div>
-                  <p className="text-base font-bold">จับภาพ {currentPose.title} เรียบร้อย!</p>
-                  <p className="text-xs text-emerald-200 mt-1">กำลังไปท่าถัดไป...</p>
+                  <p className="text-sm font-bold">บันทึกเรียบร้อย</p>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Controls Bar */}
-            <div className="w-full flex items-center justify-between px-2 pt-1">
-              {/* ปุ่มย้อนกลับ */}
-              {currentPoseIndex > 0 ? (
-                <button
-                  onClick={goToPreviousPose}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 py-2 px-3 rounded-lg flex items-center space-x-1"
-                >
-                  <span>⏮️ ท่าก่อน</span>
-                </button>
-              ) : (
-                <div className="w-16" />
-              )}
-
-              {/* ปุ่มชัตเตอร์ */}
-              <div className="flex flex-col items-center">
-                <button
-                  onClick={handleManualCapture}
-                  className={`w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition ${
-                    poseMatched
-                      ? 'bg-emerald-600 hover:bg-emerald-700 ring-4 ring-emerald-300'
-                      : faceDetected
-                      ? 'bg-amber-500 hover:bg-amber-600'
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                  title="กดถ่ายทันที หรือปล่อยให้ระบบ Auto จับภาพเมื่อท่าถูกต้อง"
-                >
-                  📷
-                </button>
-                <span className="text-[10px] text-slate-400 mt-1">
-                  {autoCaptureEnabled ? 'จับภาพ Auto เมื่อท่าถูกต้อง' : 'กดปุ่มเพื่อถ่าย'}
-                </span>
-              </div>
-
-              {/* ปุ่มสลับกล้อง / ข้าม */}
-              <div className="flex items-center space-x-1">
-                {currentPose.skippable && (
-                  <button
-                    onClick={skipPose}
-                    className="text-xs font-semibold text-slate-400 hover:text-slate-600 py-2 px-2 rounded-lg"
-                  >
-                    ข้าม
-                  </button>
-                )}
-                <button
-                  onClick={switchCamera}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 py-2 px-2.5 rounded-lg flex items-center space-x-1"
-                >
-                  <span>🔄 สลับกล้อง</span>
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* 3. REVIEW ALL STAGE */}
-        {stage === 'review' && (
-          <section className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 text-center space-y-4">
-            <div>
-              <span className="text-3xl">🎉</span>
-              <h2 className="text-lg font-bold text-slate-900 mt-1">บันทึกภาพครบ 9 ท่าทางเรียบร้อย!</h2>
-              <p className="text-xs text-slate-500">ตรวจสอบรูปภาพของคุณ หากรูปไหนต้องการถ่ายซ้ำ สามารถกดที่รูปเพื่อถ่ายใหม่ได้ครับ</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5 max-h-80 overflow-y-auto p-1.5 bg-slate-50 rounded-xl border border-slate-200">
-              {capturedImages.map((img, i) => (
-                <div key={i} className="group relative aspect-square bg-slate-200 rounded-lg overflow-hidden border border-slate-300 shadow-sm">
-                  <img src={img.base64Data} alt={img.title} className="w-full h-full object-cover" />
-                  <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] p-1 truncate text-center">
-                    {img.title}
-                  </div>
-                  {/* ปุ่มถ่ายใหม่เฉพาะท่านี้ */}
-                  <button
-                    onClick={() => handleRetakeSinglePose(i)}
-                    className="absolute inset-0 bg-black/50 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-1"
-                  >
-                    <span>🔄 ถ่ายใหม่</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="pt-2 space-y-2">
+          {/* ส่วนล่าง: ปุ่มควบคุมแบบ Minimal */}
+          <div className="w-full flex items-center justify-between max-w-xs px-4 pb-2 z-20">
+            {/* ปุ่มย้อนกลับ */}
+            {currentPoseIndex > 0 ? (
               <button
-                onClick={handleUpload}
-                className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition active:scale-[0.98] flex items-center justify-center space-x-2"
+                onClick={goToPreviousPose}
+                className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
+                title="ย้อนกลับท่าก่อนหน้า"
               >
-                <span>☁️ บันทึกลง Google Drive</span>
+                ⏮️
               </button>
-              <button
-                onClick={() => {
-                  setStage('camera');
-                  setCurrentPoseIndex(0);
-                  setCapturedImages([]);
-                  setSingleRetakeIndex(null);
-                }}
-                className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
-              >
-                ถ่ายใหม่ทั้งหมดตั้งแต่ท่าแรก
-              </button>
-            </div>
-          </section>
-        )}
-
-        {/* 4. UPLOADING STAGE */}
-        {stage === 'uploading' && (
-          <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center space-y-4">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent" />
-            <h3 className="text-base font-bold text-slate-900">กำลังบันทึกภาพลง Google Drive...</h3>
-            <p className="text-xs text-slate-500">กรุณาอย่าเพิ่งปิดหน้าต่างนี้ กำลังอัปโหลดภาพและสร้างโฟลเดอร์ให้คุณ</p>
-          </section>
-        )}
-
-        {/* 5. SUCCESS STAGE */}
-        {stage === 'success' && successInfo && (
-          <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl shadow-inner">
-              ✓
-            </div>
-            <h2 className="text-xl font-bold text-slate-900">บันทึกสำเร็จเรียบร้อย!</h2>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              ภาพถ่ายทั้งหมดของคุณถูกจัดเก็บลงในโฟลเดอร์ Google Drive อย่างปลอดภัยเรียบร้อยแล้ว
-            </p>
-
-            <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-200 text-left space-y-1">
-              <p>
-                <span className="font-semibold">โฟลเดอร์:</span> {successInfo.folderName}
-              </p>
-              <p>
-                <span className="font-semibold">จำนวนภาพที่บันทึก:</span> {successInfo.totalSaved} ภาพ
-              </p>
-            </div>
-
-            {successInfo.folderUrl && (
-              <a
-                href={successInfo.folderUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="block w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow transition"
-              >
-                📂 เปิดดูโฟลเดอร์ใน Google Drive
-              </a>
+            ) : (
+              <div className="w-10 h-10" />
             )}
 
+            {/* ปุ่มชัตเตอร์ (สำหรับกดเอง) */}
+            <button
+              onClick={handleManualCapture}
+              className={`w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition ${
+                poseMatched
+                  ? 'bg-emerald-600 ring-4 ring-emerald-300'
+                  : faceDetected
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-slate-400'
+              }`}
+              title="แตะเพื่อจับภาพทันที"
+            >
+              📷
+            </button>
+
+            {/* ปุ่มสลับกล้องหน้า/หลัง */}
+            <button
+              onClick={switchCamera}
+              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-sm shadow-sm transition active:scale-95"
+              title="สลับกล้อง"
+            >
+              🔄
+            </button>
+          </div>
+
+          {/* เอฟเฟกต์ไฟแฟลชเต็มจอ */}
+          {flash && (
+            <div className="fixed inset-0 bg-white pointer-events-none z-50 transition-opacity duration-150 opacity-100" />
+          )}
+        </div>
+      )}
+
+      {/* 3. REVIEW STAGE */}
+      {stage === 'review' && (
+        <main className="flex-1 w-full max-w-md mx-auto p-5 flex flex-col justify-center items-center text-center space-y-4">
+          <div>
+            <span className="text-4xl">🎉</span>
+            <h2 className="text-xl font-bold text-slate-900 mt-1">บันทึกครบ 9 ท่าทางแล้ว</h2>
+            <p className="text-xs text-slate-500">แตะที่รูปเพื่อถ่ายใหม่เฉพาะท่า หรือกดยืนยันเพื่อบันทึกลง Drive</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5 max-h-80 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200 w-full">
+            {capturedImages.map((img, i) => (
+              <div
+                key={i}
+                onClick={() => handleRetakeSinglePose(i)}
+                className="group relative aspect-square bg-slate-200 rounded-xl overflow-hidden border border-slate-300 shadow-sm cursor-pointer hover:ring-2 hover:ring-blue-500 transition"
+              >
+                <img src={img.base64Data} alt={img.title} className="w-full h-full object-cover" />
+                <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] p-1 truncate text-center">
+                  {img.title}
+                </div>
+                <div className="absolute inset-0 bg-black/40 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  🔄 ถ่ายใหม่
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="w-full space-y-2 pt-2">
+            <button
+              onClick={handleUpload}
+              className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-full shadow-md transition active:scale-[0.98]"
+            >
+              ☁️ บันทึกลง Google Drive
+            </button>
             <button
               onClick={() => {
-                setStage('intro');
-                setUserName('');
-                setUserId('');
+                setStage('camera');
+                setCurrentPoseIndex(0);
                 setCapturedImages([]);
-                setSuccessInfo(null);
                 setSingleRetakeIndex(null);
               }}
-              className="w-full py-2 px-4 text-xs font-semibold text-slate-500 hover:text-slate-700 transition"
+              className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
             >
-              ลงทะเบียนคนถัดไป
+              ถ่ายใหม่ทั้งหมดตั้งแต่ท่าแรก
             </button>
-          </section>
-        )}
-      </main>
+          </div>
+        </main>
+      )}
 
-      {/* FOOTER */}
-      <footer className="py-3 text-center text-xs text-slate-400">
-        Face Dataset Collection with face-api.js &copy; 2026
-      </footer>
+      {/* 4. UPLOADING STAGE */}
+      {stage === 'uploading' && (
+        <main className="flex-1 w-full max-w-sm mx-auto p-6 flex flex-col justify-center items-center text-center space-y-4">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent" />
+          <h3 className="text-base font-bold text-slate-900">กำลังส่งรูปภาพเข้า Google Drive...</h3>
+          <p className="text-xs text-slate-500">กรุณารอสักครู่ ระบบกำลังจัดเก็บข้อมูลและโฟลเดอร์ให้คุณ</p>
+        </main>
+      )}
+
+      {/* 5. SUCCESS STAGE */}
+      {stage === 'success' && successInfo && (
+        <main className="flex-1 w-full max-w-sm mx-auto p-6 flex flex-col justify-center items-center text-center space-y-5">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl shadow-inner border border-emerald-200">
+            ✓
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">บันทึกสำเร็จเรียบร้อย!</h2>
+            <p className="text-xs text-slate-500 mt-1">รูปภาพทั้ง 9 ท่าทางถูกส่งเข้า Google Drive แล้ว</p>
+          </div>
+
+          <div className="w-full p-3 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-200 text-left space-y-1">
+            <p>
+              <span className="font-semibold">โฟลเดอร์:</span> {successInfo.folderName}
+            </p>
+            <p>
+              <span className="font-semibold">จำนวนภาพที่บันทึก:</span> {successInfo.totalSaved} ภาพ
+            </p>
+          </div>
+
+          {successInfo.folderUrl && (
+            <a
+              href={successInfo.folderUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full shadow transition text-center"
+            >
+              📂 เปิดดูโฟลเดอร์ใน Google Drive
+            </a>
+          )}
+
+          <button
+            onClick={() => {
+              setStage('intro');
+              setUserName('');
+              setUserId('');
+              setCapturedImages([]);
+              setSuccessInfo(null);
+              setSingleRetakeIndex(null);
+            }}
+            className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
+          >
+            ลงทะเบียนคนถัดไป
+          </button>
+        </main>
+      )}
     </div>
   );
 }
