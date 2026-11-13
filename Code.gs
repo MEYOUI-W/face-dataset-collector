@@ -1,6 +1,6 @@
 /**
  * ระบบลงทะเบียนและบันทึกภาพใบหน้าสำหรับสร้าง Dataset (Google Apps Script)
- * บันทึกรูปภาพแยกโฟลเดอร์ตามชื่อผู้ใช้ลงใน Google Drive อัตโนมัติ
+ * บันทึกรูปภาพแยกโฟลเดอร์ตามรหัสผู้ใช้ลงใน Google Drive อัตโนมัติ
  */
 
 // ชื่อโฟลเดอร์หลักใน Google Drive ที่จะใช้เก็บ Dataset ทั้งหมด
@@ -36,25 +36,22 @@ function doPost(e) {
 
 /**
  * รับภาพและข้อมูลจากหน้าเว็บ แล้วบันทึกลง Google Drive
- * @param {Object} payload { userName: string, userId: string, images: Array<{ poseName: string, base64Data: string }> }
+ * @param {Object} payload { userName: string, userId: string, folderName?: string, images: Array<{ poseName: string, base64Data: string }> }
  */
 function uploadFaceDataset(payload) {
   try {
-    if (!payload || !payload.userName || !payload.images || payload.images.length === 0) {
-      throw new Error("ข้อมูลไม่ครบถ้วน กรุณากรอกชื่อและถ่ายภาพให้ครบ");
+    if (!payload || (!payload.userId && !payload.userName) || !payload.images || payload.images.length === 0) {
+      throw new Error("ข้อมูลไม่ครบถ้วน กรุณากรอกรหัสประจำตัวและถ่ายภาพให้ครบ");
     }
 
-    const userName = sanitizeName(payload.userName);
-    const userId = payload.userId ? sanitizeName(payload.userId) : "";
-    const folderLabel = userId ? `${userId}_${userName}` : userName;
+    // ใช้ "รหัสล้วน" (ID Only) ในการตั้งชื่อโฟลเดอร์
+    const userFolderName = sanitizeName(payload.folderName || payload.userId || payload.userName);
 
     // 1. หาหรือสร้างโฟลเดอร์หลัก Face_Dataset
     const rootFolder = getOrCreateFolder(DriveApp.getRootFolder(), ROOT_FOLDER_NAME);
 
-    // 2. สร้างโฟลเดอร์ย่อยเฉพาะของแต่ละคน (พร้อม Timestamp ป้องกันการเขียนทับ)
-    const timestampStr = Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyyMMdd_HHmmss");
-    const userFolderName = `${folderLabel}_${timestampStr}`;
-    const userFolder = rootFolder.createFolder(userFolderName);
+    // 2. หาหรือสร้างโฟลเดอร์รหัสของผู้ใช้ (เช่น Face_Dataset/65012345)
+    const userFolder = getOrCreateFolder(rootFolder, userFolderName);
 
     // 3. บันทึกไฟล์ภาพแต่ละท่าทาง
     const savedFiles = [];
@@ -66,6 +63,12 @@ function uploadFaceDataset(payload) {
       const decodedBytes = Utilities.base64Decode(base64Data);
       const fileName = `${item.poseName || "pose_" + (index + 1)}.jpg`;
       
+      // ลบไฟล์เดิมในโฟลเดอร์ถ้าชื่อซ้ำ (เพื่ออัปเดตรูปใหม่)
+      const existingFiles = userFolder.getFilesByName(fileName);
+      while (existingFiles.hasNext()) {
+        existingFiles.next().setTrashed(true);
+      }
+
       const blob = Utilities.newBlob(decodedBytes, "image/jpeg", fileName);
       const file = userFolder.createFile(blob);
       savedFiles.push({
@@ -77,14 +80,21 @@ function uploadFaceDataset(payload) {
 
     // 4. บันทึก metadata.json กำกับไว้ในโฟลเดอร์
     const metadata = {
-      userName: payload.userName,
       userId: payload.userId || "",
+      userName: payload.userName || "",
+      folderName: userFolderName,
       capturedAt: new Date().toISOString(),
       timeZone: "Asia/Bangkok",
       totalImages: savedFiles.length,
       files: savedFiles,
       deviceInfo: payload.deviceInfo || "Unknown"
     };
+
+    // อัปเดต metadata.json เดิม
+    const existingMeta = userFolder.getFilesByName("metadata.json");
+    while (existingMeta.hasNext()) {
+      existingMeta.next().setTrashed(true);
+    }
     userFolder.createFile("metadata.json", JSON.stringify(metadata, null, 2), "application/json");
 
     return {
@@ -114,8 +124,9 @@ function getOrCreateFolder(parentFolder, folderName) {
 }
 
 /**
- * ตัดอักขระพิเศษออกจากชื่อโฟลเดอร์
+ * ล้างอักขระพิเศษที่ไม่เหมาะสมในการตั้งชื่อโฟลเดอร์
  */
-function sanitizeName(str) {
-  return str.replace(/[\\/:*?"<>|]/g, "_").trim();
+function sanitizeName(name) {
+  if (!name) return "unnamed";
+  return name.toString().trim().replace(/[\\/:*?"<>|]/g, "_");
 }

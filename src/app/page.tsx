@@ -487,8 +487,8 @@ export default function FaceCaptureStudio() {
   };
 
   const handleStart = () => {
-    if (!userName.trim()) {
-      alert('กรุณากรอกชื่อ-นามสกุลก่อนเริ่มถ่ายภาพครับ');
+    if (!userId.trim()) {
+      alert('กรุณากรอกรหัสประจำตัวก่อนเริ่มถ่ายภาพครับ (ระบบจะใช้รหัสนี้เป็นชื่อโฟลเดอร์ใน Google Drive)');
       return;
     }
     try {
@@ -551,8 +551,9 @@ export default function FaceCaptureStudio() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userName: userName.trim(),
           userId: userId.trim(),
+          userName: userName.trim() || userId.trim(),
+          folderName: userId.trim(),
           images: capturedImages,
         }),
       });
@@ -593,25 +594,25 @@ export default function FaceCaptureStudio() {
           <div className="w-full space-y-3 text-left">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                ชื่อ - นามสกุล <span className="text-red-500">*</span>
+                รหัสประจำตัว (ID เพื่อใช้เป็นชื่อโฟลเดอร์) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                placeholder="เช่น 65012345 หรือ ID001"
+                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                ชื่อ - นามสกุล (ถ้ามี)
               </label>
               <input
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="เช่น สมชาย ใจดี"
-                className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                รหัสประจำตัว (ถ้ามี)
-              </label>
-              <input
-                type="text"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="เช่น 65012345"
                 className="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition bg-white"
               />
             </div>

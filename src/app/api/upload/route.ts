@@ -6,8 +6,8 @@ export async function POST(request: Request) {
   try {
     const payload = await request.json();
 
-    if (!payload || !payload.userName || !payload.images || payload.images.length === 0) {
-      return NextResponse.json({ success: false, message: 'ข้อมูลไม่ครบถ้วน กรุณากรอกชื่อและถ่ายภาพ' }, { status: 400 });
+    if (!payload || (!payload.userId && !payload.userName) || !payload.images || payload.images.length === 0) {
+      return NextResponse.json({ success: false, message: 'ข้อมูลไม่ครบถ้วน กรุณากรอกรหัสประจำตัวและถ่ายภาพ' }, { status: 400 });
     }
 
     const scriptUrl = process.env.GOOGLE_SCRIPT_URL || DEFAULT_SCRIPT_URL;
