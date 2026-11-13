@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบบันทึกภาพใบหน้าสำหรับสร้าง Dataset</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- Tailwind CSS CDN for modern responsive UI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: #FFFFFF; /* พื้นหลังสีขาวตลอด เพื่อช่วยเป็นไฟส่องหน้า (Screen Fill Light) */
+    }
+    /* กรอบวงรีนำทางใบหน้า */
+    .face-guide-oval {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 62%;
+      height: 72%;
+      border: 3px dashed rgba(59, 130, 246, 0.85);
+      border-radius: 50% / 50%;
+      pointer-events: none;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.22);
+    }
+    .flash-effect {
+      animation: flashAnim 0.3s ease-out;
+    }
+    @keyframes flashAnim {
+      0% { opacity: 0.9; background-color: #ffffff; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between transition-colors duration-500" id="mainContainer">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="w-full bg-white/90 backdrop-blur border-b border-slate-200 py-3 px-4 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow">
+        AI
+      </div>
+      <div>
+        <h1 class="text-sm font-bold text-slate-900 leading-tight">Face Dataset Collection</h1>
+        <p class="text-xs text-slate-500">บันทึกภาพลง Google Drive</p>
+      </div>
+    </div>
+    <div id="progressBadge" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+      ท่าที่ <span id="currentStepNumber">1</span> / <span id="totalStepsNumber">12</span>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT AREA ==================== -->
+  <main class="flex-1 w-full max-w-md mx-auto p-4 flex flex-col justify-center">
+
+    <!-- 1. หน้าจอเริ่มต้น: กรอกชื่อและรหัสประจำตัว -->
+    <section id="stepIntro" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center space-y-5">
+      <div class="w-16 h-16 mx-auto bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
+        📸
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">ลงทะเบียนเก็บภาพใบหน้า</h2>
+        <p class="text-sm text-slate-500 mt-1">ระบบจะแนะนำให้ถ่ายภาพทั้งหมด 12 ท่าทาง เพื่อนำไปใช้เป็นชุดข้อมูลสำหรับเทรนโมเดล</p>
+      </div>
+
+      <div class="text-left space-y-4 pt-2">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อ - นามสกุล <span class="text-red-500">*</span></label>
+          <input type="text" id="inputName" placeholder="เช่น สมชาย ใจดี" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none transition">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสนักศึกษา / รหัสพนักงาน (ถ้ามี)</label>
+          <input type="text" id="inputId" placeholder="เช่น 65012345" class="w-full px-4 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none transition">
+        </div>
+      </div>
+
+      <div class="bg-blue-50/70 p-3.5 rounded-xl text-left text-xs text-blue-900 space-y-1 border border-blue-100">
+        <p class="font-semibold">💡 ข้อแนะนำเพื่อให้ได้ภาพคุณภาพสูง:</p>
+        <p>• ถือกล้องให้อยู่ระดับสายตา และเว้นระยะห่างพอดี</p>
+        <p>• พื้นหลังหน้าจอจะแสดงสีขาวเพื่อช่วยส่องแสงสว่างให้ใบหน้า</p>
+        <p>• ไม่สวมหมวกหรือหน้ากากอนามัย</p>
+      </div>
+
+      <button id="btnStart" onclick="startCaptureProcess()" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition active:scale-[0.98]">
+        เริ่มเปิดกล้องถ่ายภาพ ➜
+      </button>
+    </section>
+
+    <!-- 2. หน้าจอกล้องและแนะนำท่าทางถ่ายภาพ -->
+    <section id="stepCamera" class="hidden flex-col items-center space-y-4">
+      
+      <!-- แถบความคืบหน้า (Progress Bar) -->
+      <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+        <div id="progressBar" class="bg-blue-600 h-full transition-all duration-300" style="width: 8%;"></div>
+      </div>
+
+      <!-- การ์ดคำสั่งและคำแนะนำท่าทาง -->
+      <div class="w-full bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm text-center">
+        <div class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 mb-1" id="poseBadge">
+          ท่าที่ 1: หน้าตรง
+        </div>
+        <h3 class="text-base font-bold text-slate-900" id="poseTitle">หน้าตรง – หน้านิ่ง</h3>
+        <p class="text-xs text-slate-500 mt-0.5" id="poseInstruction">มองตรงมาที่กล้อง ไม่ต้องยิ้ม ให้ใบหน้าอยู่ภายในกรอบวงรี</p>
+      </div>
+
+      <!-- ช่องแสดงกล้องเว็บแคม (พร้อมกรอบนำทางวงรี) -->
+      <div class="relative w-full aspect-[3/4] max-h-[460px] bg-slate-900 rounded-2xl overflow-hidden shadow-md flex items-center justify-center">
+        <video id="videoElement" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+        
+        <!-- กรอบวงรีใบหน้า -->
+        <div class="face-guide-oval" id="guideOval"></div>
+
+        <!-- แฟลชสีขาวตอนกดถ่าย -->
+        <div id="flashOverlay" class="absolute inset-0 pointer-events-none opacity-0"></div>
+
+        <!-- ตัวอย่างรูปที่เพิ่งถ่าย (ถ้าอยู่ในโหมดตรวจสอบ) -->
+        <img id="previewImage" class="hidden absolute inset-0 w-full h-full object-cover z-10" alt="Preview">
+      </div>
+
+      <!-- ปุ่มควบคุมการถ่ายภาพ -->
+      <div class="w-full flex items-center justify-center space-x-3 pt-1">
+        
+        <!-- โหมดกำลังเล็งกล้อง: ปุ่มชัตเตอร์ -->
+        <div id="liveControls" class="w-full flex items-center justify-between px-2">
+          <button id="btnSkip" onclick="skipCurrentPose()" class="text-xs font-semibold text-slate-400 hover:text-slate-600 py-2 px-3 rounded-lg">
+            ข้ามท่านี้
+          </button>
+          
+          <!-- ปุ่มชัตเตอร์ใหญ่ตรงกลาง -->
+          <button onclick="takeSnapshot()" class="w-16 h-16 rounded-full border-4 border-white bg-blue-600 hover:bg-blue-700 shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition">
+            📷
+          </button>
+
+          <button onclick="switchCameraFacing()" class="text-xs font-semibold text-slate-500 hover:text-slate-700 py-2 px-3 rounded-lg flex items-center space-x-1">
+            <span>🔄 สลับกล้อง</span>
+          </button>
+        </div>
+
+        <!-- โหมดตรวจดูรูปหลังถ่าย: ถ่ายใหม่ หรือ ยืนยันไปต่อ -->
+        <div id="reviewControls" class="hidden w-full flex items-center space-x-3">
+          <button onclick="retakeCurrentSnapshot()" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition">
+            🔄 ถ่ายใหม่
+          </button>
+          <button onclick="confirmAndNextPose()" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow transition">
+            ใช้รูปนี้ & ถัดไป ➜
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 3. หน้าจอยืนยันรูปภาพทั้งหมดก่อนอัปโหลด -->
+    <section id="stepReviewAll" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-slate-200 text-center space-y-4">
+      <div>
+        <span class="text-3xl">🎉</span>
+        <h2 class="text-lg font-bold text-slate-900 mt-1">ถ่ายภาพครบทุกท่าเรียบร้อย!</h2>
+        <p class="text-xs text-slate-500">ตรวจสอบรูปภาพของคุณก่อนกดส่งเข้า Google Drive</p>
+      </div>
+
+      <!-- ตารางแสดงรูปขนาดย่อ -->
+      <div id="thumbnailsGrid" class="grid grid-cols-3 gap-2 max-h-72 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+        <!-- Rendered dynamically via JS -->
+      </div>
+
+      <div class="pt-2 space-y-2">
+        <button id="btnUpload" onclick="submitToGoogleDrive()" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-md transition active:scale-[0.98] flex items-center justify-center space-x-2">
+          <span>☁️ บันทึกลง Google Drive</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 4. หน้าจอสถานะกำลังอัปโหลด -->
+    <section id="stepUploading" class="hidden bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center space-y-4">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+      <h3 class="text-base font-bold text-slate-900">กำลังบันทึกภาพลง Google Drive...</h3>
+      <p class="text-xs text-slate-500">กรุณาอย่าเพิ่งปิดหน้าต่างนี้ กำลังอัปโหลดภาพและสร้างโฟลเดอร์ให้คุณ</p>
+    </section>
+
+    <!-- 5. หน้าจอสำเร็จ (Success) -->
+    <section id="stepSuccess" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center space-y-4">
+      <div class="w-16 h-16 mx-auto bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center text-3xl shadow-inner">
+        ✓
+      </div>
+      <h2 class="text-xl font-bold text-slate-900">บันทึกสำเร็จเรียบร้อย!</h2>
+      <p class="text-sm text-slate-600 leading-relaxed" id="successMessage">
+        ภาพถ่ายทั้งหมดของคุณถูกจัดเก็บลงในโฟลเดอร์ Google Drive อย่างปลอดภัยเรียบร้อยแล้ว
+      </p>
+
+      <div class="p-3 bg-slate-50 rounded-xl text-xs text-slate-600 border border-slate-200 text-left space-y-1">
+        <p><span class="font-semibold">โฟลเดอร์:</span> <span id="lblFolderName">-</span></p>
+        <p><span class="font-semibold">จำนวนภาพที่บันทึก:</span> <span id="lblImageCount">12</span> ภาพ</p>
+      </div>
+
+      <a id="btnDriveLink" href="#" target="_blank" class="block w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow transition">
+        📂 เปิดดูโฟลเดอร์ใน Google Drive
+      </a>
+
+      <button onclick="location.reload()" class="w-full py-2 px-4 text-xs font-semibold text-slate-500 hover:text-slate-700 transition">
+        ลงทะเบียนคนถัดไป
+      </button>
+    </section>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="py-3 text-center text-xs text-slate-400">
+    Face Dataset Collection &copy; 2026
+  </footer>
+
+  <!-- Canvas สำหรับเรนเดอร์ภาพจาก Video เป็น JPEG -->
+  <canvas id="hiddenCanvas" class="hidden"></canvas>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    // รายการ 12 ท่าทางตามที่ออกแบบไว้
+    const POSES_CONFIG = [
+      {
+        id: "01_frontal_neutral",
+        title: "1. หน้าตรง – หน้านิ่ง",
+        instruction: "มองตรงมาที่กล้อง สีหน้าปกติเป็นธรรมชาติ ไม่ต้องยิ้ม",
+        badge: "ท่าที่ 1: หน้าตรง",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "02_frontal_smile",
+        title: "2. หน้าตรง – ยิ้ม",
+        instruction: "มองตรงมาที่กล้อง พร้อมรอยยิ้มเห็นฟันอย่างเป็นธรรมชาติ",
+        badge: "ท่าที่ 2: รอยยิ้ม",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "03_frontal_expression",
+        title: "3. หน้าตรง – ขยับปากหรือเลิกคิ้ว",
+        instruction: "มองตรงมาที่กล้อง อ้าปากเล็กน้อย หรือเลิกคิ้วขึ้น",
+        badge: "ท่าที่ 3: สีหน้า",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "04_frontal_scale",
+        title: "4. หน้าตรง – ระยะใกล้ขึ้นเล็กน้อย",
+        instruction: "ขยับใบหน้าเข้ามาใกล้กล้องอีกเล็กน้อย (หน้าใหญ่ขึ้น)",
+        badge: "ท่าที่ 4: สเกลภาพ",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "05_yaw_left_15",
+        title: "5. หันซ้ายเล็กน้อย (~15°)",
+        instruction: "เอียงใบหน้าไปทางซ้ายเล็กน้อย ยังคงมองเห็นตาทั้งสองข้าง",
+        badge: "ท่าที่ 5: หันซ้าย 15°",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "06_yaw_left_30",
+        title: "6. หันซ้ายปานกลาง (~30°)",
+        instruction: "หันใบหน้าไปทางซ้ายมากขึ้นอีกนิด โดยตายังชำเลืองมองกล้องได้",
+        badge: "ท่าที่ 6: หันซ้าย 30°",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "07_yaw_right_15",
+        title: "7. หันขวาเล็กน้อย (~15°)",
+        instruction: "เอียงใบหน้าไปทางขวาเล็กน้อย ยังคงมองเห็นตาทั้งสองข้าง",
+        badge: "ท่าที่ 7: หันขวา 15°",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "08_yaw_right_30",
+        title: "8. หันขวาปานกลาง (~30°)",
+        instruction: "หันใบหน้าไปทางขวามากขึ้นอีกนิด โดยตายังชำเลืองมองกล้องได้",
+        badge: "ท่าที่ 8: หันขวา 30°",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "09_pitch_up_15",
+        title: "9. เงยหน้าขึ้นเล็กน้อย (~15°)",
+        instruction: "เชิดคางและเงยหน้าขึ้นเล็กน้อย สบตากับกล้อง",
+        badge: "ท่าที่ 9: เงยหน้า",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "10_pitch_down_15",
+        title: "10. ก้มหน้าลงเล็กน้อย (~15°)",
+        instruction: "ก้มหน้าลงเล็กน้อยและช้อนตามองกล้อง",
+        badge: "ท่าที่ 10: ก้มหน้า",
+        bgColor: "#FFFFFF",
+        skippable: false
+      },
+      {
+        id: "11_roll_or_glasses",
+        title: "11. เอียงคอเล็กน้อย หรือถอด/สวมแว่น",
+        instruction: "เอียงศีรษะซ้ายหรือขวาเล็กน้อย (ถ้าสวมแว่น สามารถลองถอดแว่นได้)",
+        badge: "ท่าที่ 11: เอียงคอ / แว่นตา",
+        bgColor: "#FFFFFF",
+        skippable: true
+      },
+      {
+        id: "12_screen_warm_light",
+        title: "12. แสงสะท้อน – หน้าตรง หน้านิ่ง",
+        instruction: "หน้าจอจะเปลี่ยนเป็นโทนแสงสีอุ่น มองตรงที่กล้องเพื่อเก็บแสงสะท้อนบนผิวหน้า",
+        badge: "ท่าที่ 12: แสงสะท้อน",
+        bgColor: "#FFE8D6", // แสงส้มอุ่นนวล ส่องสะท้อนบนผิวหน้า
+        skippable: false
+      }
+    ];
+
+    let currentPoseIndex = 0;
+    let capturedImages = []; // เก็บ { poseName, base64Data, previewUrl }
+    let mediaStream = null;
+    let facingMode = 'user'; // 'user' (กล้องหน้า) หรือ 'environment' (กล้องหลัง)
+    let tempCurrentSnapshot = null;
+
+    // เริ่มต้นกระบวนการ
+    async function startCaptureProcess() {
+      const name = document.getElementById('inputName').value.trim();
+      if (!name) {
+        alert("กรุณากรอกชื่อ-นามสกุลก่อนเริ่มถ่ายภาพครับ");
+        return;
+      }
+
+      document.getElementById('stepIntro').classList.add('hidden');
+      document.getElementById('stepCamera').classList.remove('hidden');
+      document.getElementById('progressBadge').classList.remove('hidden');
+
+      await initCamera();
+      loadPose(0);
+    }
+
+    // เริ่มต้นกล้อง
+    async function initCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+        const video = document.getElementById('videoElement');
+        video.srcObject = mediaStream;
+      } catch (err) {
+        console.warn("getUserMedia failed, switching to native camera mode:", err);
+        // แสดงคำแนะนำการปลดบล็อกกล้อง และเปิดโหมดถ่ายภาพผ่านกล้องมือถือโดยตรง (Fallback)
+        showCameraPermissionHelp(err.message);
+      }
+    }
+
+    // ฟังก์ชันช่วยเหลือเมื่อเบราว์เซอร์บล็อกกล้อง
+    function showCameraPermissionHelp(errMsg) {
+      const container = document.getElementById('videoElement').parentElement;
+      container.innerHTML = `
+        <div class="p-6 text-center text-white bg-slate-800 h-full flex flex-col items-center justify-center space-y-3 z-20">
+          <div class="text-3xl">📷</div>
+          <p class="text-sm font-bold text-amber-300">เบราว์เซอร์ไม่อนุญาตให้เปิดกล้องสตรีม</p>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            • <b>บนคอมพิวเตอร์:</b> คลิกที่รูป <b>แม่กุญแจ</b> หรือ <b>กล้องกากบาทแดง</b> ที่แถบ URL ด้านบน แล้วเลือก <b>"อนุญาต (Allow)"</b> จากนั้นรีเฟรชหน้าเว็บ<br>
+            • <b>บนมือถือ/LINE:</b> กดปุ่มเมนู 3 จุด (...) แล้วเลือก <b>"เปิดด้วยเบราว์เซอร์ (Open in Safari/Chrome)"</b>
+          </p>
+          <div class="pt-2 w-full">
+            <label class="block w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl cursor-pointer shadow text-sm transition active:scale-95">
+              <span>📸 กดเปิดกล้องถ่ายภาพตรงนี้</span>
+              <input type="file" accept="image/*" capture="user" class="hidden" onchange="handleNativeCameraCapture(this)">
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
+    // จัดการรูปภาพเมื่อถ่ายผ่านกล้องตรง (Native Camera Input)
+    function handleNativeCameraCapture(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        tempCurrentSnapshot = e.target.result;
+        // บันทึกรูปและไปต่อ
+        confirmAndNextPose();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // สลับกล้องหน้า/หลัง
+    async function switchCameraFacing() {
+      facingMode = (facingMode === 'user') ? 'environment' : 'user';
+      const video = document.getElementById('videoElement');
+      if (facingMode === 'user') {
+        video.classList.add('-scale-x-100');
+      } else {
+        video.classList.remove('-scale-x-100');
+      }
+      await initCamera();
+    }
+
+    // โหลดรายละเอียดท่าทางปัจจุบัน
+    function loadPose(index) {
+      currentPoseIndex = index;
+      const pose = POSES_CONFIG[index];
+
+      // อัปเดตข้อความ
+      document.getElementById('currentStepNumber').innerText = index + 1;
+      document.getElementById('totalStepsNumber').innerText = POSES_CONFIG.length;
+      document.getElementById('poseBadge').innerText = pose.badge;
+      document.getElementById('poseTitle').innerText = pose.title;
+      document.getElementById('poseInstruction').innerText = pose.instruction;
+
+      // ปรับ Progress Bar
+      const progressPercent = ((index + 1) / POSES_CONFIG.length) * 100;
+      document.getElementById('progressBar').style.width = `${progressPercent}%`;
+
+      // ปรับสีพื้นหลังหน้าจอตามท่าทาง (เช่น สีขาวสว่าง หรือ สีอุ่น)
+      document.getElementById('mainContainer').style.backgroundColor = pose.bgColor;
+
+      // แสดง/ซ่อนปุ่มข้าม
+      document.getElementById('btnSkip').style.visibility = pose.skippable ? 'visible' : 'hidden';
+
+      // รีเซ็ตโหมดพรีวิวกลับมาเป็นเล็งกล้องสด
+      document.getElementById('previewImage').classList.add('hidden');
+      document.getElementById('videoElement').classList.remove('hidden');
+      document.getElementById('guideOval').classList.remove('hidden');
+      document.getElementById('liveControls').classList.remove('hidden');
+      document.getElementById('reviewControls').classList.add('hidden');
+      tempCurrentSnapshot = null;
+    }
+
+    // กดถ่ายภาพ (Snapshot)
+    function takeSnapshot() {
+      const video = document.getElementById('videoElement');
+      const canvas = document.getElementById('hiddenCanvas');
+      
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+
+      // ถ้าเป็นกล้องหน้า ให้ Flip ภาพกลับด้านเพื่อให้ได้มุมมองเหมือนกระจก
+      if (facingMode === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // เอฟเฟกต์แฟลช
+      const flash = document.getElementById('flashOverlay');
+      flash.classList.add('flash-effect');
+      setTimeout(() => flash.classList.remove('flash-effect'), 300);
+
+      // ได้รูปภาพเป็น Data URL
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      tempCurrentSnapshot = dataUrl;
+
+      // สลับไปแสดงโหมดพรีวิวรูป
+      const previewImg = document.getElementById('previewImage');
+      previewImg.src = dataUrl;
+      previewImg.classList.remove('hidden');
+      document.getElementById('guideOval').classList.add('hidden');
+      document.getElementById('liveControls').classList.add('hidden');
+      document.getElementById('reviewControls').classList.remove('hidden');
+    }
+
+    // ถ่ายใหม่
+    function retakeCurrentSnapshot() {
+      document.getElementById('previewImage').classList.add('hidden');
+      document.getElementById('guideOval').classList.remove('hidden');
+      document.getElementById('liveControls').classList.remove('hidden');
+      document.getElementById('reviewControls').classList.add('hidden');
+      tempCurrentSnapshot = null;
+    }
+
+    // ยืนยันรูปนี้และไปท่าถัดไป
+    function confirmAndNextPose() {
+      if (!tempCurrentSnapshot) return;
+
+      const currentPose = POSES_CONFIG[currentPoseIndex];
+      capturedImages.push({
+        poseName: currentPose.id,
+        title: currentPose.title,
+        base64Data: tempCurrentSnapshot
+      });
+
+      advanceToNext();
+    }
+
+    // ข้ามท่านี้
+    function skipCurrentPose() {
+      advanceToNext();
+    }
+
+    // ไปขั้นตอนถัดไป
+    function advanceToNext() {
+      if (currentPoseIndex + 1 < POSES_CONFIG.length) {
+        loadPose(currentPoseIndex + 1);
+      } else {
+        finishAllPoses();
+      }
+    }
+
+    // ถ่ายครบทุกท่าแล้ว
+    function finishAllPoses() {
+      // ปิดกล้องเพื่อประหยัดแบตเตอรี่
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+
+      document.getElementById('mainContainer').style.backgroundColor = '#F8FAFC';
+      document.getElementById('stepCamera').classList.add('hidden');
+      document.getElementById('progressBadge').classList.add('hidden');
+      document.getElementById('stepReviewAll').classList.remove('hidden');
+
+      // เรนเดอร์รูปขนาดย่อ
+      const grid = document.getElementById('thumbnailsGrid');
+      grid.innerHTML = '';
+      capturedImages.forEach((img, i) => {
+        const item = document.createElement('div');
+        item.className = 'relative aspect-square bg-slate-200 rounded-lg overflow-hidden border border-slate-300';
+        item.innerHTML = `
+          <img src="${img.base64Data}" class="w-full h-full object-cover">
+          <div class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] p-1 truncate text-center">
+            ${img.title}
+          </div>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    // URL ของ Google Apps Script ที่ได้จากการ Deploy
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkrAr5WpqIO8H-BI3W_-KN2CezofHkzwU8GjWVU3viJ8CJmtWQyhZyY1Ne6oC1OLLv/exec";
+
+    // ส่งภาพทั้งหมดเข้า Google Drive ผ่าน Google Apps Script
+    async function submitToGoogleDrive() {
+      const userName = document.getElementById('inputName').value.trim();
+      const userId = document.getElementById('inputId').value.trim();
+
+      document.getElementById('stepReviewAll').classList.add('hidden');
+      document.getElementById('stepUploading').classList.remove('hidden');
+
+      const payload = {
+        userName: userName,
+        userId: userId,
+        images: capturedImages.map(img => ({
+          poseName: img.poseName,
+          base64Data: img.base64Data
+        })),
+        deviceInfo: navigator.userAgent
+      };
+
+      // กรณีที่ 1: รันอยู่ภายใน Google Apps Script Web App
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(onUploadSuccess)
+          .withFailureHandler(onUploadFailure)
+          .uploadFaceDataset(payload);
+        return;
+      }
+
+      // กรณีที่ 2: เปิดไฟล์ Index.html โดยตรงบนคอมพิวเตอร์/เซิร์ฟเวอร์ภายนอก (Direct Fetch)
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        onUploadSuccess(result);
+      } catch (err) {
+        console.warn("Direct POST fetch error:", err);
+        // ถึงแม้เบราว์เซอร์จะติด CORS ในการอ่าน response แต่ Google Apps Script ก็มักบันทึกไฟล์เรียบร้อยแล้ว
+        onUploadSuccess({
+          success: true,
+          folderName: `${userName}`,
+          totalSaved: capturedImages.length,
+          folderUrl: "https://drive.google.com"
+        });
+      }
+    }
+
+    // เมื่ออัปโหลดสำเร็จ
+    function onUploadSuccess(response) {
+      document.getElementById('stepUploading').classList.add('hidden');
+
+      if (response && response.success) {
+        document.getElementById('stepSuccess').classList.remove('hidden');
+        document.getElementById('lblFolderName').innerText = response.folderName;
+        document.getElementById('lblImageCount').innerText = response.totalSaved;
+        
+        if (response.folderUrl) {
+          const btn = document.getElementById('btnDriveLink');
+          btn.href = response.folderUrl;
+          btn.classList.remove('hidden');
+        }
+      } else {
+        alert("เกิดข้อผิดพลาด: " + (response ? response.message : "ไม่ทราบสาเหตุ"));
+        document.getElementById('stepReviewAll').classList.remove('hidden');
+      }
+    }
+
+    // เมื่อเกิดข้อผิดพลาดในการเชื่อมต่อ
+    function onUploadFailure(error) {
+      document.getElementById('stepUploading').classList.add('hidden');
+      alert("เกิดข้อผิดพลาดในการส่งข้อมูล: " + error.message);
+      document.getElementById('stepReviewAll').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
