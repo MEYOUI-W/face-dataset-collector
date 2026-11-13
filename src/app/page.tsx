@@ -26,13 +26,13 @@ const LIGHT_COLORS = [
   { id: '06_light_green', title: '6.4 แสงสะท้อน – สีเขียว', color: '#00C853', label: 'แสงเขียว 🟢 (4/4)' },
 ];
 
-// รายการท่าทาง 9 ท่าทางหลัก
+// รายการท่าทาง 8 ท่าทางหลัก
 const POSES: PoseConfig[] = [
   {
     id: '01_frontal_neutral',
     title: 'หน้าตรง',
     instruction: 'มองตรงมาที่กล้อง สีหน้าปกติ ไม่ต้องยิ้ม',
-    badge: '1/9',
+    badge: '1/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -40,7 +40,7 @@ const POSES: PoseConfig[] = [
     id: '02_yaw_left',
     title: 'หันซ้าย',
     instruction: 'หันศีรษะไปทางซ้ายของคุณเล็กน้อย (~20°)',
-    badge: '2/9',
+    badge: '2/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -48,7 +48,7 @@ const POSES: PoseConfig[] = [
     id: '03_yaw_right',
     title: 'หันขวา',
     instruction: 'หันศีรษะไปทางขวาของคุณเล็กน้อย (~20°)',
-    badge: '3/9',
+    badge: '3/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -56,7 +56,7 @@ const POSES: PoseConfig[] = [
     id: '04_pitch_down',
     title: 'ก้มหน้า',
     instruction: 'ก้มหน้าลงเล็กน้อย และช้อนสายตามองกล้อง',
-    badge: '4/9',
+    badge: '4/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -64,7 +64,7 @@ const POSES: PoseConfig[] = [
     id: '05_pitch_up',
     title: 'เงยหน้า',
     instruction: 'เชิดคางและเงยหน้าขึ้นเล็กน้อย สบตากับกล้อง',
-    badge: '5/9',
+    badge: '5/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -72,7 +72,7 @@ const POSES: PoseConfig[] = [
     id: '06_screen_light',
     title: 'แสงสะท้อนบนใบหน้า (4 สี)',
     instruction: 'มองตรงที่กล้อง หน้านิ่ง จอจะกะพริบเปลี่ยน 4 สี (ขาว, ส้ม, ฟ้า, เขียว) และจับภาพอัตโนมัติ',
-    badge: '6/9',
+    badge: '6/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -80,7 +80,7 @@ const POSES: PoseConfig[] = [
     id: '07_slight_smile',
     title: 'ยิ้มเล็กน้อย',
     instruction: 'มองตรงและยิ้มเล็กน้อย ให้มุมปากยกขึ้น',
-    badge: '7/9',
+    badge: '7/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -88,15 +88,7 @@ const POSES: PoseConfig[] = [
     id: '08_squint_eyes',
     title: 'หรี่ตา',
     instruction: 'มองตรงและหรี่ตาลงเล็กน้อย (ไม่ต้องหลับตา)',
-    badge: '8/9',
-    bgColor: '#FFFFFF',
-    skippable: false,
-  },
-  {
-    id: '09_closed_eyes',
-    title: 'ปิดตา',
-    instruction: 'หลับตาทั้งสองข้างให้สนิท ทำหน้านิ่ง',
-    badge: '9/9',
+    badge: '8/8',
     bgColor: '#FFFFFF',
     skippable: false,
   },
@@ -475,10 +467,6 @@ export default function FaceCaptureStudio() {
         if (avgEar < 0.11) return { matched: false, feedback: '👁️ แค่หรี่ตา อย่าเพิ่งหลับตาสนิทครับ' };
         return { matched: true, feedback: '✅ หรี่ตาถูกต้อง' };
 
-      case '09_closed_eyes':
-        if (avgEar >= 0.14) return { matched: false, feedback: '😌 กรุณาหลับตาทั้งสองข้างครับ' };
-        return { matched: true, feedback: '✅ ปิดตาสนิทแล้ว' };
-
       default:
         return { matched: true, feedback: '✅ ท่าทางถูกต้อง' };
     }
@@ -671,7 +659,7 @@ export default function FaceCaptureStudio() {
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">ลงทะเบียนภาพใบหน้า</h1>
-            <p className="text-xs text-slate-500 mt-1">ระบบตรวจจับและบันทึกอัตโนมัติ 9 ท่าทาง (พร้อมแสง 4 สี)</p>
+            <p className="text-xs text-slate-500 mt-1">ระบบตรวจจับและบันทึกอัตโนมัติ 8 ท่าทาง (พร้อมแสง 4 สี)</p>
           </div>
 
           <div className="w-full space-y-3 text-left">
