@@ -134,6 +134,12 @@ export default function FaceCaptureStudio() {
   const [flash, setFlash] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ folderName: string; totalSaved: number; folderUrl?: string } | null>(null);
 
+  // การตั้งค่า Auto-Capture
+  const [autoCaptureEnabled, setAutoCaptureEnabled] = useState(true);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [isJustCaptured, setIsJustCaptured] = useState(false);
+  const [singleRetakeIndex, setSingleRetakeIndex] = useState<number | null>(null);
+
   // สถานะ AI จาก face-api.js
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
@@ -143,8 +149,46 @@ export default function FaceCaptureStudio() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectIntervalRef = useRef<any>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Refs สำหรับการนับถอยหลัง Auto-Capture
+  const steadyFramesRef = useRef(0);
+  const isCoolingDownRef = useRef(false);
+  const countdownTimerRef = useRef<any>(null);
 
   const currentPose = POSES[currentPoseIndex];
+
+  // เล่นเสียงชัตเตอร์แบบสังเคราะห์ (Web Audio API)
+  const playShutterSound = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      // เสียงคลิกชัตเตอร์ 2 จังหวะสั้นๆ
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.08);
+
+      gain.gain.setValueAtTime(0.4, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } catch {
+      // ignore audio error
+    }
+  }, []);
 
   // โหลดโมเดล face-api.js
   useEffect(() => {
@@ -218,9 +262,100 @@ export default function FaceCaptureStudio() {
     }
   };
 
-  // ลูปตรวจจับใบหน้าแบบ Real-time ด้วย face-api.js
+  // ฟังก์ชันถ่ายภาพและบันทึก
+  const captureFrame = useCallback((): string | null => {
+    if (!videoRef.current) return null;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    if (facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    playShutterSound();
+    setFlash(true);
+    setTimeout(() => setFlash(false), 200);
+
+    return canvas.toDataURL('image/jpeg', 0.92);
+  }, [facingMode, playShutterSound]);
+
+  // ฟังก์ชันเมื่อบันทึกรูปสำเร็จ (ทั้ง Auto และ Manual)
+  const saveAndAdvance = useCallback((dataUrl: string) => {
+    const newEntry: CapturedImage = {
+      poseName: currentPose.id,
+      title: currentPose.title,
+      base64Data: dataUrl,
+    };
+
+    setCapturedImages((prev) => {
+      if (singleRetakeIndex !== null) {
+        const copy = [...prev];
+        copy[singleRetakeIndex] = newEntry;
+        return copy;
+      } else {
+        const filtered = prev.filter((item) => item.poseName !== currentPose.id);
+        return [...filtered, newEntry];
+      }
+    });
+
+    setIsJustCaptured(true);
+    setCountdown(null);
+    steadyFramesRef.current = 0;
+    isCoolingDownRef.current = true;
+
+    // หากเป็นการถ่ายซ้ำเฉพาะท่าจากหน้า Review ให้กลับไป Review ทันที
+    if (singleRetakeIndex !== null) {
+      setTimeout(() => {
+        setIsJustCaptured(false);
+        setSingleRetakeIndex(null);
+        setStage('review');
+        isCoolingDownRef.current = false;
+      }, 700);
+      return;
+    }
+
+    // หน่วงเวลาเล็กน้อย 0.8 วิ แสดงข้อความสำเร็จ แล้วไปยังท่าต่อไป
+    setTimeout(() => {
+      setIsJustCaptured(false);
+      if (currentPoseIndex + 1 < POSES.length) {
+        setCurrentPoseIndex((prev) => prev + 1);
+        setAiFeedbackText(`👉 เตรียมตัว: ${POSES[currentPoseIndex + 1].title}`);
+        // ให้เวลาผู้ใช้ 1.2 วินาทีในการปรับท่าทาง ก่อนเริ่มนับ Auto-capture รอบใหม่
+        setTimeout(() => {
+          isCoolingDownRef.current = false;
+        }, 1200);
+      } else {
+        isCoolingDownRef.current = false;
+        setStage('review');
+      }
+    }, 800);
+  }, [currentPose.id, currentPose.title, currentPoseIndex, singleRetakeIndex]);
+
+  // ชัตเตอร์กดเอง (Manual Shutter)
+  const handleManualCapture = () => {
+    const dataUrl = captureFrame();
+    if (dataUrl) {
+      saveAndAdvance(dataUrl);
+    }
+  };
+
+  // ลูปตรวจจับใบหน้าและ Auto-Capture แบบ Real-time ด้วย face-api.js
   const runFaceDetection = useCallback(async () => {
-    if (!videoRef.current || !modelsLoaded || !window.faceapi || videoRef.current.paused || videoRef.current.ended) {
+    if (
+      !videoRef.current ||
+      !modelsLoaded ||
+      !window.faceapi ||
+      videoRef.current.paused ||
+      videoRef.current.ended ||
+      isCoolingDownRef.current ||
+      isJustCaptured
+    ) {
       return;
     }
 
@@ -235,6 +370,8 @@ export default function FaceCaptureStudio() {
       if (!detections || detections.length === 0) {
         setFaceDetected(false);
         setSmileScore(null);
+        setCountdown(null);
+        steadyFramesRef.current = 0;
         setAiFeedbackText('🔍 กรุณาให้ใบหน้าอยู่หน้ากล้อง');
         return;
       }
@@ -242,6 +379,8 @@ export default function FaceCaptureStudio() {
       if (detections.length > 1) {
         setFaceDetected(false);
         setSmileScore(null);
+        setCountdown(null);
+        steadyFramesRef.current = 0;
         setAiFeedbackText('👥 ตรวจพบมากกว่า 1 คน กรุณาถ่ายทีละคน');
         return;
       }
@@ -249,37 +388,62 @@ export default function FaceCaptureStudio() {
       const single = detections[0];
       setFaceDetected(true);
 
-      // ตรวจจับรอยยิ้ม
       const happyScore = single.expressions?.happy || 0;
       setSmileScore(Math.round(happyScore * 100));
 
-      // ให้คำแนะนำสดตามท่าทางปัจจุบัน
+      // เช็คว่าท่าทางสอดคล้องกับ Requirement หรือไม่
+      let isPoseReady = true;
+
       if (currentPose.id === '02_frontal_smile') {
-        if (happyScore > 0.5) {
-          setAiFeedbackText(`😊 เยี่ยมมาก! กำลังยิ้ม (${Math.round(happyScore * 100)}%)`);
+        if (happyScore > 0.40) {
+          setAiFeedbackText(`😊 ยิ้มสวยมาก! (${Math.round(happyScore * 100)}%)`);
+          isPoseReady = true;
         } else {
-          setAiFeedbackText('😐 หน้านิ่งอยู่ ยิ้มกว้างขึ้นอีกนิดครับ');
+          setAiFeedbackText('😃 ยิ้มกว้างขึ้นอีกนิดครับ กำลังรอรอยยิ้ม...');
+          isPoseReady = false;
+          // รีเซ็ตการนับหากยังไม่ยิ้ม
+          steadyFramesRef.current = 0;
+          setCountdown(null);
         }
-      } else if (currentPose.id === '05_yaw_left_15' || currentPose.id === '06_yaw_left_30') {
-        setAiFeedbackText('👈 กำลังเอียงหันซ้าย พร้อมถ่าย');
-      } else if (currentPose.id === '07_yaw_right_15' || currentPose.id === '08_yaw_right_30') {
-        setAiFeedbackText('👉 กำลังเอียงหันขวา พร้อมถ่าย');
       } else {
-        setAiFeedbackText('✅ ตรวจพบใบหน้า พร้อมถ่าย');
+        setAiFeedbackText('✅ ตรวจพบใบหน้า พร้อมบันทึก');
+      }
+
+      // ถ้าเปิดโหมด Auto-Capture และท่าทางพร้อม
+      if (autoCaptureEnabled && isPoseReady) {
+        steadyFramesRef.current += 1;
+
+        // เฟรมที่ 1-2: เริ่มนับถอยหลัง 2
+        // เฟรมที่ 3-4: นับถอยหลัง 1
+        // เฟรมที่ 5: แชะ! ถ่ายอัตโนมัติ (ใช้เวลาประมาณ 1.2 วินาทีในการค้างท่านิ่ง)
+        if (steadyFramesRef.current >= 5) {
+          steadyFramesRef.current = 0;
+          setCountdown(null);
+          const dataUrl = captureFrame();
+          if (dataUrl) {
+            saveAndAdvance(dataUrl);
+          }
+        } else if (steadyFramesRef.current >= 3) {
+          setCountdown(1);
+        } else if (steadyFramesRef.current >= 1) {
+          setCountdown(2);
+        }
+      } else if (!autoCaptureEnabled) {
+        setCountdown(null);
       }
     } catch {
-      // ignore frame check errors
+      // ignore detection errors
     }
-  }, [modelsLoaded, currentPose.id]);
+  }, [modelsLoaded, isJustCaptured, currentPose.id, autoCaptureEnabled, captureFrame, saveAndAdvance]);
 
   useEffect(() => {
-    if (stage === 'camera' && modelsLoaded && !tempSnapshot) {
+    if (stage === 'camera' && modelsLoaded) {
       detectIntervalRef.current = setInterval(runFaceDetection, 250);
     }
     return () => {
       if (detectIntervalRef.current) clearInterval(detectIntervalRef.current);
     };
-  }, [stage, modelsLoaded, tempSnapshot, runFaceDetection]);
+  }, [stage, modelsLoaded, runFaceDetection]);
 
   const switchCamera = () => {
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
@@ -290,61 +454,63 @@ export default function FaceCaptureStudio() {
       alert('กรุณากรอกชื่อ-นามสกุลก่อนเริ่มถ่ายภาพครับ');
       return;
     }
+    // ปลดล็อค Web Audio API จาก interaction แรก
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        audioCtxRef.current = new AudioCtx();
+        audioCtxRef.current.resume();
+      }
+    } catch {
+      // ignore
+    }
+
     setStage('camera');
     setCurrentPoseIndex(0);
     setCapturedImages([]);
     setTempSnapshot(null);
-  };
-
-  const takeSnapshot = () => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    if (facingMode === 'user') {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    setFlash(true);
-    setTimeout(() => setFlash(false), 250);
-
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    setTempSnapshot(dataUrl);
-  };
-
-  const retakeSnapshot = () => {
-    setTempSnapshot(null);
-  };
-
-  const confirmSnapshot = () => {
-    if (!tempSnapshot) return;
-    const newEntry: CapturedImage = {
-      poseName: currentPose.id,
-      title: currentPose.title,
-      base64Data: tempSnapshot,
-    };
-    setCapturedImages((prev) => [...prev, newEntry]);
-    setTempSnapshot(null);
-    advancePose();
+    setSingleRetakeIndex(null);
+    steadyFramesRef.current = 0;
+    isCoolingDownRef.current = false;
   };
 
   const skipPose = () => {
-    setTempSnapshot(null);
     advancePose();
   };
 
   const advancePose = () => {
     if (currentPoseIndex + 1 < POSES.length) {
       setCurrentPoseIndex((prev) => prev + 1);
+      steadyFramesRef.current = 0;
+      isCoolingDownRef.current = true;
+      setTimeout(() => {
+        isCoolingDownRef.current = false;
+      }, 1000);
     } else {
       setStage('review');
     }
+  };
+
+  const goToPreviousPose = () => {
+    if (currentPoseIndex > 0) {
+      setCurrentPoseIndex((prev) => prev - 1);
+      steadyFramesRef.current = 0;
+      isCoolingDownRef.current = true;
+      setTimeout(() => {
+        isCoolingDownRef.current = false;
+      }, 800);
+    }
+  };
+
+  const handleRetakeSinglePose = (index: number) => {
+    setSingleRetakeIndex(index);
+    setCurrentPoseIndex(index);
+    setStage('camera');
+    steadyFramesRef.current = 0;
+    isCoolingDownRef.current = true;
+    setTimeout(() => {
+      isCoolingDownRef.current = false;
+    }, 1000);
   };
 
   const handleUpload = async () => {
@@ -359,20 +525,20 @@ export default function FaceCaptureStudio() {
           images: capturedImages,
         }),
       });
+
       const data = await res.json();
-      if (data.success) {
-        setSuccessInfo({
-          folderName: data.folderName || userName,
-          totalSaved: data.totalSaved || capturedImages.length,
-          folderUrl: data.folderUrl,
-        });
-        setStage('success');
-      } else {
-        alert(`เกิดข้อผิดพลาด: ${data.message || 'ไม่ทราบสาเหตุ'}`);
-        setStage('review');
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'บันทึกภาพไม่สำเร็จ');
       }
+
+      setSuccessInfo({
+        folderName: data.folderName,
+        totalSaved: data.totalSaved,
+        folderUrl: data.folderUrl,
+      });
+      setStage('success');
     } catch (err: any) {
-      alert(`ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: ${err.message}`);
+      alert(`เกิดข้อผิดพลาดในการบันทึกภาพ:\n${err.message}\nกรุณาลองใหม่อีกครั้ง`);
       setStage('review');
     }
   };
@@ -390,12 +556,26 @@ export default function FaceCaptureStudio() {
           </div>
           <div>
             <h1 className="text-sm font-bold text-slate-900 leading-tight">Face Dataset Collection</h1>
-            <p className="text-xs text-slate-500">face-api.js + Google Drive</p>
+            <p className="text-xs text-slate-500">Auto-Capture with face-api.js</p>
           </div>
         </div>
+
         {stage === 'camera' && (
-          <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
-            ท่าที่ {currentPoseIndex + 1} / {POSES.length}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setAutoCaptureEnabled((prev) => !prev)}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition flex items-center space-x-1 ${
+                autoCaptureEnabled
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  : 'bg-slate-100 text-slate-600 border-slate-300'
+              }`}
+              title="เปิด/ปิดการถ่ายภาพอัตโนมัติเมื่อตรวจพบใบหน้า"
+            >
+              <span>{autoCaptureEnabled ? '⚡ Auto: เปิด' : '✋ กดเอง'}</span>
+            </button>
+            <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
+              {currentPoseIndex + 1} / {POSES.length}
+            </div>
           </div>
         )}
       </header>
@@ -406,12 +586,12 @@ export default function FaceCaptureStudio() {
         {stage === 'intro' && (
           <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center space-y-5">
             <div className="w-16 h-16 mx-auto bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-inner">
-              📸
+              ⚡
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">ลงทะเบียนเก็บภาพใบหน้า</h2>
+              <h2 className="text-xl font-bold text-slate-900">ระบบบันทึกใบหน้าอัตโนมัติ</h2>
               <p className="text-sm text-slate-500 mt-1">
-                ระบบขับเคลื่อนด้วย <b>face-api.js</b> เพื่อช่วยตรวจจับท่าทางและบันทึกภาพลง Google Drive
+                ตรวจจับใบหน้าและ <b>บันทึกภาพอัตโนมัติ (Hands-free)</b> โดยไม่ต้องกดชัตเตอร์เอง
               </p>
             </div>
 
@@ -442,35 +622,41 @@ export default function FaceCaptureStudio() {
               </div>
             </div>
 
-            <div className="bg-blue-50/70 p-3.5 rounded-xl text-left text-xs text-blue-900 space-y-1 border border-blue-100">
-              <p className="font-semibold">💡 จุดเด่นระบบใหม่ (face-api.js):</p>
-              <p>• มี AI ตรวจจับใบหน้าและรอยยิ้มแบบ Real-time บนหน้าจอ</p>
-              <p>• หน้าจอเปิดพื้นหลังสีขาวเพื่อช่วยส่องแสงสว่างให้ใบหน้า</p>
-              <p>• บันทึกภาพดิบ 12 ท่าทางตรงเข้า Google Drive ของคุณ</p>
+            <div className="bg-emerald-50/70 p-3.5 rounded-xl text-left text-xs text-emerald-950 space-y-1.5 border border-emerald-200">
+              <p className="font-semibold text-emerald-900">✨ ระบบ Auto-Capture ทำงานอย่างไร:</p>
+              <p>• เพียงทำท่าทางตามที่ระบบแจ้งบนหน้าจอ</p>
+              <p>• เมื่อตรวจพบใบหน้านิ่งหรือรอยยิ้ม ระบบจะนับถอยหลังและ <b>แชะภาพให้อัตโนมัติ</b></p>
+              <p>• ขยับไปท่าต่อไปจนครบ 12 ท่าทางโดยไม่ต้องแตะหน้าจอ</p>
+              <p>• หน้าจอเปิดพื้นหลังสีขาวช่วยส่องแสงสว่างให้ใบหน้า</p>
             </div>
 
             <button
               onClick={handleStart}
               className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition active:scale-[0.98]"
             >
-              เริ่มเปิดกล้องถ่ายภาพ ➜
+              เริ่มเปิดกล้อง (โหมด Auto) ➜
             </button>
           </section>
         )}
 
         {/* 2. CAMERA STAGE */}
         {stage === 'camera' && (
-          <section className="flex flex-col items-center space-y-4">
+          <section className="flex flex-col items-center space-y-3">
             {/* Progress Bar */}
             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
               <div
-                className="bg-blue-600 h-full transition-all duration-300"
+                className="bg-emerald-500 h-full transition-all duration-300"
                 style={{ width: `${((currentPoseIndex + 1) / POSES.length) * 100}%` }}
               />
             </div>
 
             {/* Instruction Card */}
-            <div className="w-full bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm text-center">
+            <div className="w-full bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm text-center relative">
+              {singleRetakeIndex !== null && (
+                <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                  กำลังถ่ายใหม่เฉพาะท่านี้
+                </span>
+              )}
               <div className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 mb-1">
                 {currentPose.badge}
               </div>
@@ -489,84 +675,110 @@ export default function FaceCaptureStudio() {
               />
 
               {/* Status Badge จาก face-api.js ด้านบน */}
-              {!tempSnapshot && (
-                <div className="absolute top-3 inset-x-3 flex items-center justify-center pointer-events-none z-20">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur shadow transition-all ${
-                      faceDetected
-                        ? 'bg-emerald-600/90 text-white border border-emerald-400'
-                        : 'bg-black/60 text-slate-200 border border-white/20'
-                    }`}
-                  >
-                    {aiFeedbackText}
+              <div className="absolute top-3 inset-x-3 flex items-center justify-center pointer-events-none z-20">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur shadow transition-all ${
+                    faceDetected
+                      ? 'bg-emerald-600/90 text-white border border-emerald-400'
+                      : 'bg-black/60 text-slate-200 border border-white/20'
+                  }`}
+                >
+                  {aiFeedbackText}
+                </span>
+              </div>
+
+              {/* Oval Guide (เปลี่ยนเป็นสีเขียวเมื่อตรวจพบหน้า) */}
+              <div
+                className="absolute pointer-events-none transition-all duration-300"
+                style={{
+                  width: '62%',
+                  height: '72%',
+                  border: faceDetected
+                    ? countdown !== null
+                      ? '4px solid #10B981'
+                      : '3px solid rgba(16, 185, 129, 0.95)'
+                    : '3px dashed rgba(59, 130, 246, 0.85)',
+                  borderRadius: '50% / 50%',
+                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.22)',
+                }}
+              />
+
+              {/* Countdown Overlay ขนาดใหญ่เมื่อตรวจพบนิ่ง */}
+              {countdown !== null && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-30 bg-black/10">
+                  <div className="w-20 h-20 rounded-full bg-emerald-500/95 text-white flex items-center justify-center text-4xl font-extrabold shadow-2xl animate-pulse border-4 border-white">
+                    {countdown}
+                  </div>
+                  <span className="mt-2 px-3 py-1 bg-black/70 text-white text-xs font-bold rounded-full">
+                    📸 กำลังบันทึกอัตโนมัติ...
                   </span>
                 </div>
               )}
 
-              {/* Oval Guide (เปลี่ยนเป็นสีเขียวเมื่อตรวจพบหน้า) */}
-              {!tempSnapshot && (
-                <div
-                  className="absolute pointer-events-none transition-colors duration-300"
-                  style={{
-                    width: '62%',
-                    height: '72%',
-                    border: faceDetected ? '3px solid rgba(16, 185, 129, 0.95)' : '3px dashed rgba(59, 130, 246, 0.85)',
-                    borderRadius: '50% / 50%',
-                    boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.22)',
-                  }}
-                />
-              )}
-
               {/* Flash effect */}
-              {flash && <div className="absolute inset-0 bg-white pointer-events-none transition-opacity duration-200 opacity-90" />}
+              {flash && <div className="absolute inset-0 bg-white pointer-events-none transition-opacity duration-150 opacity-95 z-40" />}
 
-              {/* Captured snapshot preview */}
-              {tempSnapshot && (
-                <img src={tempSnapshot} alt="Preview" className="absolute inset-0 w-full h-full object-cover z-10" />
+              {/* Just Captured Success Message */}
+              {isJustCaptured && (
+                <div className="absolute inset-0 bg-emerald-950/70 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none z-30 text-white animate-fade-in">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center text-3xl font-bold shadow-lg mb-2">
+                    ✓
+                  </div>
+                  <p className="text-base font-bold">บันทึกท่านี้เรียบร้อย!</p>
+                  <p className="text-xs text-emerald-200 mt-1">กำลังขยับไปท่าต่อไป...</p>
+                </div>
               )}
             </div>
 
-            {/* Controls */}
-            <div className="w-full flex items-center justify-center space-x-3 pt-1">
-              {!tempSnapshot ? (
-                <div className="w-full flex items-center justify-between px-2">
-                  {currentPose.skippable ? (
-                    <button onClick={skipPose} className="text-xs font-semibold text-slate-400 hover:text-slate-600 py-2 px-3 rounded-lg">
-                      ข้ามท่านี้
-                    </button>
-                  ) : (
-                    <div className="w-16" />
-                  )}
-
-                  <button
-                    onClick={takeSnapshot}
-                    className={`w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition ${
-                      faceDetected ? 'bg-emerald-600 hover:bg-emerald-700 ring-4 ring-emerald-300/60' : 'bg-blue-600 hover:bg-blue-700'
-                    }`}
-                  >
-                    📷
-                  </button>
-
-                  <button onClick={switchCamera} className="text-xs font-semibold text-slate-500 hover:text-slate-700 py-2 px-3 rounded-lg flex items-center space-x-1">
-                    <span>🔄 สลับกล้อง</span>
-                  </button>
-                </div>
+            {/* Controls Bar */}
+            <div className="w-full flex items-center justify-between px-2 pt-1">
+              {/* ปุ่มย้อนกลับ */}
+              {currentPoseIndex > 0 ? (
+                <button
+                  onClick={goToPreviousPose}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 py-2 px-3 rounded-lg flex items-center space-x-1"
+                >
+                  <span>⏮️ ท่าก่อน</span>
+                </button>
               ) : (
-                <div className="w-full flex items-center space-x-3">
-                  <button
-                    onClick={retakeSnapshot}
-                    className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition"
-                  >
-                    🔄 ถ่ายใหม่
-                  </button>
-                  <button
-                    onClick={confirmSnapshot}
-                    className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow transition"
-                  >
-                    ใช้รูปนี้ & ถัดไป ➜
-                  </button>
-                </div>
+                <div className="w-16" />
               )}
+
+              {/* ปุ่มชัตเตอร์ (สามารถกดได้ทั้งคู่: ระบบ Auto หรือกดเองได้ทันที) */}
+              <div className="flex flex-col items-center">
+                <button
+                  onClick={handleManualCapture}
+                  className={`w-16 h-16 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white text-2xl active:scale-95 transition ${
+                    faceDetected
+                      ? 'bg-emerald-600 hover:bg-emerald-700 ring-4 ring-emerald-300/60'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  title="กดถ่ายทันที หรือปล่อยให้ระบบ Auto บันทึกเอง"
+                >
+                  📷
+                </button>
+                <span className="text-[10px] text-slate-400 mt-1">
+                  {autoCaptureEnabled ? 'ระบบ Auto กำลังตรวจจับ' : 'กดปุ่มเพื่อถ่าย'}
+                </span>
+              </div>
+
+              {/* ปุ่มสลับกล้อง / ข้าม */}
+              <div className="flex items-center space-x-1">
+                {currentPose.skippable && (
+                  <button
+                    onClick={skipPose}
+                    className="text-xs font-semibold text-slate-400 hover:text-slate-600 py-2 px-2 rounded-lg"
+                  >
+                    ข้าม
+                  </button>
+                )}
+                <button
+                  onClick={switchCamera}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700 py-2 px-2.5 rounded-lg flex items-center space-x-1"
+                >
+                  <span>🔄 สลับกล้อง</span>
+                </button>
+              </div>
             </div>
           </section>
         )}
@@ -577,16 +789,23 @@ export default function FaceCaptureStudio() {
             <div>
               <span className="text-3xl">🎉</span>
               <h2 className="text-lg font-bold text-slate-900 mt-1">ถ่ายภาพครบทุกท่าเรียบร้อย!</h2>
-              <p className="text-xs text-slate-500">ตรวจสอบรูปภาพของคุณก่อนกดส่งเข้า Google Drive</p>
+              <p className="text-xs text-slate-500">ตรวจสอบรูปภาพของคุณ หากรูปไหนไม่ชัด สามารถกดถ่ายใหม่เฉพาะท่านั้นได้ครับ</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 max-h-72 overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="grid grid-cols-3 gap-2.5 max-h-80 overflow-y-auto p-1.5 bg-slate-50 rounded-xl border border-slate-200">
               {capturedImages.map((img, i) => (
-                <div key={i} className="relative aspect-square bg-slate-200 rounded-lg overflow-hidden border border-slate-300">
+                <div key={i} className="group relative aspect-square bg-slate-200 rounded-lg overflow-hidden border border-slate-300 shadow-sm">
                   <img src={img.base64Data} alt={img.title} className="w-full h-full object-cover" />
                   <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] p-1 truncate text-center">
                     {img.title}
                   </div>
+                  {/* ปุ่มถ่ายใหม่เฉพาะท่านี้ */}
+                  <button
+                    onClick={() => handleRetakeSinglePose(i)}
+                    className="absolute inset-0 bg-black/50 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-1"
+                  >
+                    <span>🔄 ถ่ายใหม่</span>
+                  </button>
                 </div>
               ))}
             </div>
@@ -603,10 +822,11 @@ export default function FaceCaptureStudio() {
                   setStage('camera');
                   setCurrentPoseIndex(0);
                   setCapturedImages([]);
+                  setSingleRetakeIndex(null);
                 }}
                 className="w-full py-2 text-xs font-semibold text-slate-400 hover:text-slate-600 transition"
               >
-                ถ่ายใหม่ทั้งหมด
+                ถ่ายใหม่ทั้งหมดตั้งแต่ท่าแรก
               </button>
             </div>
           </section>
@@ -659,6 +879,7 @@ export default function FaceCaptureStudio() {
                 setUserId('');
                 setCapturedImages([]);
                 setSuccessInfo(null);
+                setSingleRetakeIndex(null);
               }}
               className="w-full py-2 px-4 text-xs font-semibold text-slate-500 hover:text-slate-700 transition"
             >
