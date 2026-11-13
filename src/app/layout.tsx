@@ -12,8 +12,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased min-h-screen bg-white text-gray-900">
+    <html lang="th">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        <script src="https://cdn.tailwindcss.com"></script>
+      </head>
+      <body className="antialiased min-h-screen bg-white text-slate-800" style={{ fontFamily: "'Sarabun', sans-serif" }}>
         {children}
       </body>
     </html>
