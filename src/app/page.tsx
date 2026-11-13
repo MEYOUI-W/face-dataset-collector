@@ -254,27 +254,34 @@ export default function FaceCaptureStudio() {
     }
   };
 
-  // ฟังก์ชันถ่ายภาพลง canvas
+  // ฟังก์ชันถ่ายภาพลง canvas (Crop เป็นจัตุรัส 640x640 คมชัด น้ำหนักเบา เหมาะสำหรับ Dataset)
   const captureFrame = useCallback((): string | null => {
     if (!videoRef.current) return null;
     const video = videoRef.current;
+    const targetSize = 640;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = targetSize;
+    canvas.height = targetSize;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+    const minDim = Math.min(vw, vh);
+    const sx = (vw - minDim) / 2;
+    const sy = (vh - minDim) / 2;
 
     if (facingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, sx, sy, minDim, minDim, 0, 0, targetSize, targetSize);
 
     playShutterSound();
     setFlash(true);
     setTimeout(() => setFlash(false), 160);
 
-    return canvas.toDataURL('image/jpeg', 0.92);
+    return canvas.toDataURL('image/jpeg', 0.84);
   }, [facingMode, playShutterSound]);
 
   // เมื่อบันทึกภาพทั่วไป

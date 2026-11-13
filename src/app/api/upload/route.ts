@@ -7,12 +7,15 @@ export async function POST(request: Request) {
     const payload = await request.json();
 
     if (!payload || (!payload.userId && !payload.userName) || !payload.images || payload.images.length === 0) {
-      return NextResponse.json({ success: false, message: 'ข้อมูลไม่ครบถ้วน กรุณากรอกรหัสประจำตัวและถ่ายภาพ' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, message: 'ข้อมูลไม่ครบถ้วน กรุณากรอกรหัสประจำตัวและถ่ายภาพ' },
+        { status: 400 }
+      );
     }
 
     const scriptUrl = process.env.GOOGLE_SCRIPT_URL || DEFAULT_SCRIPT_URL;
 
-    // ส่ง payload ต่อไปยัง Google Apps Script (Server-to-Server, ไม่มีปัญหา CORS)
+    // ส่ง payload ต่อไปยัง Google Apps Script (Server-to-Server)
     const googleRes = await fetch(scriptUrl, {
       method: 'POST',
       headers: {
@@ -21,7 +24,34 @@ export async function POST(request: Request) {
       body: JSON.stringify(payload),
     });
 
-    const data = await googleRes.json();
+    const responseText = await googleRes.text();
+
+    // ตรวจสอบว่า Google ตอบกลับเป็น HTML 404 หรือหน้า Error หรือไม่
+    if (responseText.includes('<!DOCTYPE') || googleRes.status === 404) {
+      console.error('Google Apps Script 404/HTML error response:', responseText.slice(0, 300));
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            'ไม่พบ URL ของ Google Apps Script (404 Not Found) กรุณาตรวจสอบว่าใน Apps Script ได้กด Deploy เป็นเวอร์ชันใหม่ และตั้งค่าสิทธิ์ Who has access เป็น "Anyone" แล้วหรือยังครับ',
+        },
+        { status: 502 }
+      );
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Google Apps Script ตอบกลับข้อมูลที่ไม่ถูกต้อง: ${responseText.slice(0, 150)}`,
+        },
+        { status: 502 }
+      );
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error forwarding upload to Google Drive:', error);
